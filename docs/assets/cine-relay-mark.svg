@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">CineRelay</title>
+  <rect x="16" y="17" width="96" height="96" rx="24" fill="#091439"/>
+  <path d="M79 39H66a25 25 0 0 0 0 50h5" fill="none" stroke="#687BFF" stroke-width="11"/>
+  <circle cx="80.5" cy="40.75" r="10" fill="#35EDB4"/>
+  <circle cx="82" cy="87.75" r="11" fill="#35EDB4"/>
+  <path d="M67 80.25 78 87.75 67 95.25Z" fill="#687BFF"/>
+</svg>

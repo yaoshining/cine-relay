@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/cine-relay-mark.png" width="112" height="112" alt="CineRelay 标志：连接两个节点的 C 形箭头">
+  <img src="docs/assets/cine-relay-mark.svg" width="112" height="112" alt="CineRelay 标志：连接两个节点的 C 形箭头">
 </p>
 
 <h1 align="center">CineRelay · 映桥</h1>
