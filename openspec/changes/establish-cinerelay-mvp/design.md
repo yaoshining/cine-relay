@@ -15,6 +15,18 @@
 - **Neon PostgreSQL / `@neondatabase/serverless` / Drizzle ORM**。常规读取用 Drizzle；任务认领、去重、游标推进和 UPSERT 使用显式事务 SQL。保留一个现有项目与 `main` 分支；本地与 CI 用合成数据，Vercel 预览环境不持有生产写权限。
 - **Auth.js + GitHub OAuth**。用稳定 GitHub 账户 ID 筛选受邀管理员，默认拒绝；所有后台页面与后台 API 在服务端校验会话与管理员资格。外部应用密钥不能访问后台。敏感操作保留不含秘密的审计记录。
 
+### 1.2 数据层与兼容迁移
+
+- 保留 `db/migrations/0001_initial.sql` 原样。按编号维护显式 SQL 迁移，Drizzle 只负责类型映射和查询，不使用 schema push 或第二套迁移历史。应用启动、构建和测试都不隐式连接或迁移 Neon。
+- `0002_mvp_data_layer.sql` 只追加结构：为 `movies` 加可空的原片语言、片长；为管理后台新增审计记录，为同步新增任务模板及运行记录。旧元数据不回填、不伪造，旧导入器可继续写原列；任务模板与运行独立于旧的 `movie_sync_jobs`、`sync_cursors`。批次、游标推进、凭据存储细节和预算／回源租约随对应任务落地，不在本次迁移提前引入。
+- 运行保存独立的配置快照及计划时间、开始时间、结束时间；`(template_id, scheduled_at)` 唯一，非定时运行没有计划时间。试抓允许在未保存模板时记录运行，正式运行必须关联模板。数据库约束保证重复调度的唯一键与 JSON 对象形态；配置校验、快照不可编辑、状态流转和事件派发由后续服务实现。审计存 GitHub ID、动作、目标、结果与时间，不存请求体或任意摘要；鉴权及写入审计在 1.3 接入。
+- 运行时使用服务端专用、惰性初始化的 Neon HTTP Drizzle 客户端（`DATABASE_URL` 可用池化连接）；本轮只提供按电影 ID 与语言精确读取原始缓存行的内部查询，不触发回源、不应用 API 缓存策略、不改动静态页面。数据库 bigint 不转成 JS number；日期和时间以字符串读取，以保留 PostgreSQL 精度。
+
+#### 迁移与回退
+
+- 空库以 PostgreSQL 直连变量 `DATABASE_URL_UNPOOLED`，用 `psql "$DATABASE_URL_UNPOOLED" --single-transaction --set=ON_ERROR_STOP=1 --file=db/migrations/0001_initial.sql --file=db/migrations/0002_mvp_data_layer.sql` 初始化；已应用 0001 的环境只传 `--file=db/migrations/0002_mvp_data_layer.sql`，不要重跑 0001。迁移按版本显式执行一次，不忽略已存在的对象；失败整次回滚。应用回退时保留兼容的新增结构，不执行自动逆迁移。
+- 本地和 CI 用内存 PGlite 验证空库路径及已有数据升级；合成记录覆盖电影、多语言、旧队列及游标，验证升级前后旧字段不变、旧导入可继续写且保持时间顺序和缓存期限，并验证新约束及 Drizzle 读写。生产执行留到 3.3，不创建云测试库。
+
 ### 任务配置与执行
 
 - 表单分为选片条件、抓取内容、运行方式、同步模式。原声语言是筛选条件，译文语言是 TMDB 请求参数；请求 `zh-CN` 不保证上游不会回退到其他语言。首版字段组为电影基础详情与译文；演职员等扩展字段另立变更。

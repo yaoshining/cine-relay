@@ -11,17 +11,20 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/test_tmdb_import.mjs && tsx --test tests/*.test.tsx && python3 -m unittest discover -s tests"
+    "test:db": "tsx --test tests/db.test.ts tests/test_tmdb_import.mjs",
+    "test": "npm run test:db && tsx --test tests/*.test.tsx && python3 -m unittest discover -s tests"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.2.1",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
+    "drizzle-orm": "0.45.4",
     "lucide-react": "1.80.0",
     "next": "16.4.6",
     "radix-ui": "1.8.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "server-only": "0.0.1",
     "tailwind-merge": "3.7.1"
   },
   "devDependencies": {

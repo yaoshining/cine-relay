@@ -75,16 +75,7 @@ npm run import:tmdb              # 写入 cine-relay 项目的 main / cine_relay
 
 ## 数据库迁移
 
-初始结构见 [`db/migrations/0001_initial.sql`](db/migrations/0001_initial.sql)。对新建的空数据库，用 PostgreSQL 直连地址执行一次：
-
-```bash
-psql "$DATABASE_URL" --single-transaction --set=ON_ERROR_STOP=1 \
-  --file=db/migrations/0001_initial.sql
-```
-
-- `movies` 保存电影公共字段和确认下架的时间；`movie_localizations` 按 `(tmdb_id, locale)` 保存标题、简介、海报路径和缓存时效。
-- `sync_cursors` 保存同步进度；`movie_sync_jobs` 按电影与语言去重，支持记录重试时间和任务租约，允许先入队、后抓取未见过的电影。
-- `expires_at` 是正常缓存的过期时间；`purge_after` 是最晚保留时间。自动刷新、删除过期数据和任务消费由后续同步程序实现，建表本身不会自动执行这些操作。
+SQL 位于 [`db/migrations/`](db/migrations/)。空库初始化与已有数据库升级的命令见 [OpenSpec：迁移与回退](openspec/changes/establish-cinerelay-mvp/design.md#迁移与回退)。`npm run test:db` 在本地用合成数据验证两条路径，无需数据库凭据。
 
 ## 数据授权与署名
 
