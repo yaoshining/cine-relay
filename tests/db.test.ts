@@ -10,6 +10,9 @@ import * as schema from "../src/lib/db/schema"
 
 const initial = readFileSync(new URL("../db/migrations/0001_initial.sql", import.meta.url), "utf8")
 const incremental = readFileSync(new URL("../db/migrations/0002_mvp_data_layer.sql", import.meta.url), "utf8")
+const sampleRuns = readFileSync(new URL("../db/migrations/0003_sync_sample_runs.sql", import.meta.url), "utf8")
+const manualItems = readFileSync(new URL("../db/migrations/0004_manual_sync_items.sql", import.meta.url), "utf8")
+const schedules = readFileSync(new URL("../db/migrations/0007_incremental_schedule.sql", import.meta.url), "utf8")
 const fetchedAt = "2026-02-01T01:02:03.123456Z"
 const snapshot = {
   tmdb_id: 101, locale: "zh-CN", title: "合成片名", original_title: "Synthetic title",
@@ -117,9 +120,9 @@ test("0002 preserves populated legacy tables and the untouched importer can stil
   assert.equal((await findMovieCache(db, 101n, "en-US"))?.localization.title, "Synthetic English title")
 })
 
-test("0002 stores run snapshots and enforces schedule deduplication and audit constraints", async (t) => {
+test("run snapshots enforce schedule deduplication and audit constraints after 0004", async (t) => {
   const { pg, db } = await setup(t)
-  await migrate(pg, initial, incremental)
+  await migrate(pg, initial, incremental, sampleRuns, manualItems, schedules)
   const { syncJobTemplates, syncJobRuns, adminAuditEvents } = schema
   const config = { mode: "incremental", locale: "zh-CN" }
   const [template] = await db.insert(syncJobTemplates).values({ name: "合成任务", mode: "incremental", config }).returning()

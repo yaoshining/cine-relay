@@ -16,12 +16,32 @@ const time = new Intl.DateTimeFormat("sv-SE", {
   hour: "2-digit", minute: "2-digit", second: "2-digit",
 });
 
+const actionNames: Record<string, string> = {
+  "admin.oauth.admission": "GitHub OAuth 登录准入",
+  "sync.template.created": "创建任务模板",
+  "sync.template.updated": "更新任务模板",
+  "sync.sample.requested": "申请试抓",
+  "sync.sample.redispatched": "重派试抓",
+  "sync.backfill.requested": "申请正式同步",
+  "sync.backfill.redispatched": "重派正式同步",
+  "sync.backfill.retried": "重试正式同步",
+  "consumer.key.issued": "签发应用密钥",
+  "consumer.key.revoked": "撤销应用密钥",
+  "tmdb.credential.added": "添加 TMDB 凭据",
+  "tmdb.credential.enabled": "启用 TMDB 凭据",
+  "tmdb.credential.disabled": "停用 TMDB 凭据",
+  "sync.schedule.enabled": "启用定时计划",
+  "sync.schedule.disabled": "停用定时计划",
+  "sync.cursor.rebuilt": "重建增量游标",
+};
+const categoryNames: Record<string, string> = { admin_access: "管理员访问", sync_template: "任务模板", sync_run: "运行", consumer_key: "应用密钥", tmdb_credential: "TMDB 凭据" };
+
 function display(event: AdminAuditEvent) {
   return {
     time: time.format(new Date(event.createdAt)),
     actor: `github:${event.actorGithubId}`,
-    category: event.targetType === "admin_access" ? "管理员访问" : event.targetType,
-    action: event.action === "admin.oauth.admission" ? "GitHub OAuth 登录准入" : event.action,
+    category: Object.hasOwn(categoryNames, event.targetType) ? categoryNames[event.targetType] : event.targetType,
+    action: Object.hasOwn(actionNames, event.action) ? actionNames[event.action] : event.action,
     target: event.targetId ?? "—",
     outcome: outcomes[event.outcome],
   };
@@ -62,7 +82,7 @@ export function AuditLog({ events, asOf }: { events: AdminAuditEvent[] | null; a
   const visible = matches.slice(page * 7, page * 7 + 7);
 
   return <div className="page-flow">
-    <PageHead title="操作审计" sub="记录 GitHub 登录准入判定 · 不记录密钥或 Token 原文" action={<>
+    <PageHead title="操作审计" sub="记录 GitHub 登录准入与任务操作 · 不记录密钥或 Token 原文" action={<>
       <Badge variant="outline"><ShieldCheck aria-hidden="true"/>只读审计流</Badge>
       <Button variant="outline" onClick={() => exportCsv(matches)} disabled={!matches.length}><Download aria-hidden="true"/>导出脱敏 CSV</Button>
     </>}/>

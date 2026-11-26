@@ -11,15 +11,17 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:db": "tsx --test tests/db.test.ts tests/test_tmdb_import.mjs",
+    "test:db": "tsx --test tests/db.test.ts tests/movie-catalog.test.ts tests/sync-runs.test.ts tests/consumer-api.test.ts tests/schedules.test.ts tests/test_tmdb_import.mjs",
     "test:auth:http": "node --test tests/admin-auth.http.mjs",
-    "test": "npm run test:db && tsx --test tests/admin-auth.test.ts tests/*.test.tsx && python3 -m unittest discover -s tests"
+    "test": "npm run test:db && tsx --test tests/admin-auth.test.ts tests/tmdb-sample.test.ts tests/*.test.tsx && python3 -m unittest discover -s tests"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.2.1",
+    "@scalar/api-reference-react": "0.9.97",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "drizzle-orm": "0.45.4",
+    "inngest": "4.27.0",
     "lucide-react": "1.80.0",
     "next": "16.4.6",
     "next-auth": "5.0.0-beta.32",
@@ -27,7 +29,17 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "server-only": "0.0.1",
-    "tailwind-merge": "3.7.1"
+    "tailwind-merge": "3.7.1",
+    "zod": "4.6.7"
+  },
+  "overrides": {
+    "inngest": {
+      "zod": "$zod"
+    },
+    "gaxios": {
+      "rimraf": "6.1.4"
+    },
+    "@opentelemetry/api": "1.9.1"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.4",

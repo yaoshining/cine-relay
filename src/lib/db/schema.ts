@@ -98,6 +98,9 @@ export const syncJobRuns = pgTable("sync_job_runs", {
   triggerType: text("trigger_type", { enum: ["manual", "sample", "scheduled"] }).notNull(),
   status: text("status", { enum: ["queued", "dispatch_failed", "running", "completed", "partial_failed", "failed"] }).notNull().default("queued"),
   configSnapshot: jsonb("config_snapshot").$type<JsonObject>().notNull(),
+  resultSummary: jsonb("result_summary").$type<JsonObject>(),
+  retryOf: uuid("retry_of"),
+  cursorGeneration: uuid("cursor_generation"),
   scheduledAt: instant("scheduled_at"),
   startedAt: instant("started_at"),
   finishedAt: instant("finished_at"),
@@ -110,6 +113,28 @@ export const syncJobRuns = pgTable("sync_job_runs", {
   check("sync_job_runs_template_check", sql`${t.triggerType} = 'sample' OR ${t.templateId} IS NOT NULL`),
   check("sync_job_runs_schedule_check", sql`(${t.triggerType} = 'scheduled') = (${t.scheduledAt} IS NOT NULL)`),
   unique("sync_job_runs_template_schedule_key").on(t.templateId, t.scheduledAt),
+  check("sync_job_runs_result_summary_check", sql`jsonb_typeof(${t.resultSummary}) = 'object'`),
+  index("sync_job_runs_recent_idx").on(t.createdAt.desc(), t.id.desc()),
+  foreignKey({ columns: [t.retryOf], foreignColumns: [t.id], name: "sync_job_runs_retry_of_fkey" }),
+  unique("sync_job_runs_retry_of_key").on(t.retryOf),
+  check("sync_job_runs_retry_of_check", sql`${t.retryOf} is null or (${t.retryOf} <> ${t.id} and ${t.triggerType} = 'manual')`),
+])
+
+export const syncRunItems = pgTable("sync_run_items", {
+  runId: uuid("run_id").notNull().references(() => syncJobRuns.id),
+  tmdbId: bigint("tmdb_id", { mode: "bigint" }).notNull(),
+  position: integer("position").notNull(),
+  status: text("status", { enum: ["pending", "fetched", "stored", "unchanged", "removed", "failed", "deferred"] }).notNull().default("pending"),
+  fetchedAt: instant("fetched_at"),
+  errorCode: text("error_code"),
+}, (t) => [
+  primaryKey({ columns: [t.runId, t.tmdbId], name: "sync_run_items_pkey" }),
+  unique("sync_run_items_run_id_position_key").on(t.runId, t.position),
+  check("sync_run_items_tmdb_id_check", sql`${t.tmdbId} > 0`),
+  check("sync_run_items_position_check", sql`${t.position} >= 1`),
+  check("sync_run_items_status_check", sql`${t.status} in ('pending','fetched','stored','unchanged','removed','failed','deferred')`),
+  check("sync_run_items_check", sql`(${t.fetchedAt} is not null) = (${t.status} in ('fetched','stored','unchanged','removed'))`),
+  check("sync_run_items_check1", sql`(${t.errorCode} is not null) = (${t.status} in ('failed','deferred'))`),
 ])
 
 export const adminAuditEvents = pgTable("admin_audit_events", {
