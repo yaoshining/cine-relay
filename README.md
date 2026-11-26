@@ -12,14 +12,14 @@ CineRelay 是为 [VidAll](https://github.com/yaoshining/vidall-tv) 设计的影�
 
 ## 本地预览管理后台
 
-需要 Node.js 22+ 与 Python 3。当前是使用合成数据的 1.1 视觉骨架，不需要配置 Neon、TMDB、GitHub OAuth 或 Inngest。
+需要 Node.js 22+ 与 Python 3。无需凭据即可启动并查看登录页和公开文档；进入后台需按 [OpenSpec：管理员认证与审计](openspec/changes/establish-cinerelay-mvp/design.md#13-管理员认证与审计) 配置 GitHub OAuth 与已迁移的审计数据库。后台其他业务页面仍使用合成数据。
 
 ```bash
 npm ci
 npm run dev -- --hostname 127.0.0.1
 ```
 
-打开 `http://localhost:3000`。各路由可从左侧导航进入；组件验收页在 `/design-system`。本地检查：`npm run lint`、`npm run typecheck`、`npm test`、`npm run build`。
+打开 `http://localhost:3000`。受邀登录后可从左侧导航进入各管理页面；组件验收页在 `/design-system`。本地检查：`npm run lint`、`npm run typecheck`、`npm test`、`npm run build`。
 
 ## 项目规范与进度
 

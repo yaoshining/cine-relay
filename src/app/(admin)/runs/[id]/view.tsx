@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 const batch = [
  ["#48","25 条","已完成","已提交","2.84 秒"],["#49","25 条","已完成","已提交","3.12 秒"],["#50","25 条","已完成","已提交","2.96 秒"],["#51","25 条","已完成","提交超时","5.00 秒"],["#52","25 条","退避中","待入库","—"]
 ];
-export function generateStaticParams(){return runs.map(({id})=>({id}));}
 export default async function RunDetail({params}:{params:Promise<{id:string}>}){
  const {id}=await params, run=runs.find(r=>r.id===id);
  if(!run)notFound();

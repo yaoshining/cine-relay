@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { movies } from "@/lib/demo";
 
-export function generateStaticParams(){ return movies.map(({id})=>({id})); }
 export default async function MoviePage({params}:{params:Promise<{id:string}>}){
  const {id}=await params;
  const movie=movies.find(m=>m.id===id);

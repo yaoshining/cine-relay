@@ -2,18 +2,18 @@ import assert from 'node:assert/strict';
 import { accessSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import Overview from '../src/app/page';
-import Jobs from '../src/app/jobs/page';
-import Credentials from '../src/app/credentials/page';
-import Login from '../src/app/login/page';
-import NewJob from '../src/app/jobs/new/page';
-import EditJob from '../src/app/jobs/[id]/page';
-import Runs from '../src/app/runs/page';
-import RunDetail from '../src/app/runs/[id]/page';
-import Consumers from '../src/app/consumers/page';
-import Audit from '../src/app/audit/page';
+import Overview from '../src/app/(admin)/view';
+import Jobs from '../src/app/(admin)/jobs/view';
+import Credentials from '../src/app/(admin)/credentials/view';
+import { LoginView } from '../src/app/login/view';
+import NewJob from '../src/app/(admin)/jobs/new/view';
+import EditJob from '../src/app/(admin)/jobs/[id]/view';
+import Runs from '../src/app/(admin)/runs/view';
+import RunDetail from '../src/app/(admin)/runs/[id]/view';
+import Consumers from '../src/app/(admin)/consumers/view';
+import { AuditLog } from '../src/components/audit-log';
 import { Catalog } from '../src/components/catalog';
-import MovieDetail from '../src/app/movies/[id]/page';
+import MovieDetail from '../src/app/(admin)/movies/[id]/view';
 import { completion, filterMovies, movies, navigation } from '../src/lib/demo';
 
 test('dashboard is a labelled offline demo and renders six local poster links', () => {
@@ -30,7 +30,7 @@ test('dashboard is a labelled offline demo and renders six local poster links', 
 
 test('each navigation route is unique and has its own App Router page', () => {
   assert.equal(new Set(navigation.map(([href])=>href)).size,8);
-  for(const [href] of navigation) accessSync(`src/app${href==="/"?"":href}/page.tsx`);
+  for(const [href] of navigation) accessSync(`src/app${href==="/docs/api"?"":"/(admin)"}${href==="/"?"":href}/page.tsx`);
 });
 
 test('offline catalog finds case-insensitive titles and respects status filters', () => {
@@ -64,7 +64,7 @@ test('jobs with sample results and credentials each show one solid primary actio
 test('confirmed console views have their own routes and primary action hierarchy', async () => {
   const searchParams=Promise.resolve({});
   const views = [
-    [renderToStaticMarkup(<Login/>),/使用 GitHub 受邀账户登录/,1],
+    [renderToStaticMarkup(<LoginView enabled signIn={async () => {}}/>),/使用 GitHub 受邀账户登录/,1],
     [renderToStaticMarkup(await Jobs({searchParams})),/href="\/jobs\/daily\?sample=1"/,1],
     [renderToStaticMarkup(await NewJob({searchParams})),/返回任务配置/,1],
     [renderToStaticMarkup(await EditJob({params:Promise.resolve({id:'weekly'}),searchParams})),/每周经典片单增量/,1],
@@ -72,7 +72,7 @@ test('confirmed console views have their own routes and primary action hierarchy
     [renderToStaticMarkup(<Runs/>),/href="\/runs\/0142"/,1],
     [renderToStaticMarkup(await RunDetail({params:Promise.resolve({id:'0142'})})),/返回运行历史/,1],
     [renderToStaticMarkup(<Consumers/>),/vidall-stg-4p9x/,1],
-    [renderToStaticMarkup(<Audit/>),/只读审计流/,0],
+    [renderToStaticMarkup(<AuditLog events={[]} asOf={0}/>),/只读审计流/,0],
   ] as const;
   for(const [markup,expected,count] of views){
     assert.match(markup,expected);

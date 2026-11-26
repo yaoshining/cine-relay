@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Button } from "@/components/ui/button";
 import { BrandMark, GitHubMark } from "@/components/brand";
 import { navigation } from "@/lib/demo";
+import { signOutAdmin } from "@/lib/admin/actions";
 const icons = [House, Settings, History, Clapperboard, KeyRound, Globe2, FileSearch, BookOpen];
 function Nav({ path, onNavigate }:{path:string;onNavigate?:()=>void}) {
   return <nav aria-label="管理后台" className="side-nav">{navigation.map(([href,label],index)=>{
@@ -14,10 +15,9 @@ function Nav({ path, onNavigate }:{path:string;onNavigate?:()=>void}) {
     return <Link key={href} href={href} onClick={onNavigate} aria-current={current?"page":undefined} className="nav-link"><Icon aria-hidden="true"/>{label}</Link>;
   })}</nav>;
 }
-function Identity(){return <Link href="/login" className="identity"><GitHubMark/>受邀管理员 · GitHub</Link>}
+function Identity(){return <form action={signOutAdmin} className="identity"><GitHubMark/><span className="grow">受邀管理员</span><Button type="submit" variant="ghost" size="sm">退出登录</Button></form>}
 export function AppShell({children}:{children:ReactNode}){
   const path=usePathname(); const [open,setOpen]=useState(false);
-  if(path==="/login") return <main id="content">{children}</main>;
   return <><a className="skip" href="#content">跳转到主要内容</a><aside className="sidebar">
     <Link href="/" className="wordmark"><BrandMark/>CineRelay</Link><Nav path={path}/><Identity/>
   </aside><div className="mobile-head"><Link href="/" className="wordmark"><BrandMark/>CineRelay</Link>

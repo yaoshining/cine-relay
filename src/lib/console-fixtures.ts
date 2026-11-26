@@ -21,16 +21,3 @@ export const runs:Run[]=[...primaryRuns,...Array.from({length:12},(_,i):Run=>{
  return {id:sample?`sample-00${32-i}`:String(135-i).padStart(4,'0'),name:sample?'2026 院线热门回填':'每日电影增量',mode:sample?'试抓样本':'增量同步',trigger:sample?'手动试抓':'定时计划',planned:sample?'—':`11-${20-i} 09:00`,actual:sample?`11-${20-i} 08:45`:'09:00',counts:sample?[0,0,0,0]:[count,count,count,count],status:sample?'sample':'complete'};
 })];
 export const runLabel=(id:string)=>id.startsWith('sample-')?`SAMPLE #${id.slice(7)}`:`#${id}`;
-
-const auditBase = [
- ['11-26 09:18:42','github:18492031','外部应用','撤销外部凭据','vidall-old-3x9p','例行密钥轮换',true],
- ['11-26 09:04:11','github:18492031','任务执行','安全重试失败项','Run #0142 · #920188','幂等入队 · 仅更新更晚 fetched_at',true],
- ['11-26 08:52:05','github:18492031','TMDB 凭据','启用备用凭据','tmdb_••••_4c81','共享并发预算保持 2/2',true],
- ['11-26 08:45:19','github:18492031','任务配置','发起试抓','SAMPLE #0023','最多 5 部 · 不写库 · 不推进游标',true],
- ['11-25 22:31:08','外部密钥 vidall-prod','访问拦截','尝试访问管理接口','/api/admin/runs','外部密钥禁止进入管理后台',false],
- ['11-25 21:10:44','github:99401288','管理员访问','GitHub OAuth 登录校验','GitHub 账户 ID','账户 ID 不在受邀白名单',false],
- ['11-25 18:16:02','github:18492031','外部应用','签发外部凭据','vidall-prod-8k2m','仅存哈希 · 明文单次展示',true],
-] as const;
-export const auditEvents = Array.from({length:6},(_,group)=>auditBase.map(([time,actor,category,action,target,summary,ok],i)=>({
- time:`2026-${group===0?time:`11-${String(25-group).padStart(2,'0')} ${String(20-i).padStart(2,'0')}:18:42`}`,actor,category,action,target,summary,ok,
-}))).flat();

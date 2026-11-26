@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:db": "tsx --test tests/db.test.ts tests/test_tmdb_import.mjs",
-    "test": "npm run test:db && tsx --test tests/*.test.tsx && python3 -m unittest discover -s tests"
+    "test:auth:http": "node --test tests/admin-auth.http.mjs",
+    "test": "npm run test:db && tsx --test tests/admin-auth.test.ts tests/*.test.tsx && python3 -m unittest discover -s tests"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.2.1",
@@ -21,6 +22,7 @@
     "drizzle-orm": "0.45.4",
     "lucide-react": "1.80.0",
     "next": "16.4.6",
+    "next-auth": "5.0.0-beta.32",
     "radix-ui": "1.8.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
