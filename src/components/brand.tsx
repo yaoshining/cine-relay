@@ -1,0 +1,6 @@
+export function BrandMark() {
+  return <svg aria-hidden="true" viewBox="0 0 48 48" fill="none" className="brand-mark"><rect x="1" y="1" width="46" height="46" rx="13" fill="#121D42"/><rect x="1.5" y="1.5" width="45" height="45" rx="12.5" stroke="#2C3B72"/><path d="M35 15a13 13 0 1 0 0 18M29 18a8 8 0 1 0 0 12" stroke="#687BFF" strokeWidth="2.5" strokeLinecap="round"/><path d="M10 24h7m14-10 5 1m-5 19 5-1" stroke="#22D3EE" strokeWidth="2"/><circle cx="10" cy="24" r="2.4" fill="#35EDB4"/><circle cx="36" cy="15" r="2.6" fill="#35EDB4"/><circle cx="36" cy="33" r="2.6" fill="#35EDB4"/></svg>;
+}
+export function GitHubMark() {
+  return <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4" fill="currentColor"><path d="M12 .75a11.25 11.25 0 0 0-3.56 21.92c.56.1.76-.24.76-.54v-2.1c-3.13.68-3.8-1.34-3.8-1.34-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.13.08 1.72 1.16 1.72 1.16 1 1.72 2.63 1.22 3.27.94.1-.73.39-1.22.72-1.5-2.5-.28-5.13-1.25-5.13-5.56 0-1.23.44-2.23 1.16-3.02-.12-.29-.5-1.43.11-2.98 0 0 .95-.3 3.1 1.15a10.8 10.8 0 0 1 5.64 0c2.15-1.45 3.09-1.15 3.09-1.15.62 1.55.24 2.69.12 2.98.72.79 1.16 1.79 1.16 3.02 0 4.32-2.63 5.28-5.14 5.56.4.35.76 1.03.76 2.08v3.1c0 .3.2.65.77.54A11.25 11.25 0 0 0 12 .75Z"/></svg>;
+}

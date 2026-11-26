@@ -1,0 +1,11 @@
+.DS_Store
+.neon
+/.tmdb-prefetch*/
+__pycache__/
+/node_modules/
+/.local/
+/.next/
+/next-env.d.ts
+/*.tsbuildinfo
+/.env*
+!/.env.example
