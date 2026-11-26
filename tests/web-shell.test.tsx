@@ -5,6 +5,13 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import Overview from '../src/app/page';
 import Jobs from '../src/app/jobs/page';
 import Credentials from '../src/app/credentials/page';
+import Login from '../src/app/login/page';
+import NewJob from '../src/app/jobs/new/page';
+import EditJob from '../src/app/jobs/[id]/page';
+import Runs from '../src/app/runs/page';
+import RunDetail from '../src/app/runs/[id]/page';
+import Consumers from '../src/app/consumers/page';
+import Audit from '../src/app/audit/page';
 import { Catalog } from '../src/components/catalog';
 import MovieDetail from '../src/app/movies/[id]/page';
 import { completion, filterMovies, movies, navigation } from '../src/lib/demo';
@@ -52,6 +59,26 @@ test('jobs with sample results and credentials each show one solid primary actio
     assert.equal((markup.match(/data-slot="button" data-variant="default"/g)??[]).length,1);
     assert.equal((markup.match(/data-slot="button" data-variant="indigo-outline"/g)??[]).length,1);
   }
+});
+
+test('confirmed console views have their own routes and primary action hierarchy', async () => {
+  const searchParams=Promise.resolve({});
+  const views = [
+    [renderToStaticMarkup(<Login/>),/使用 GitHub 受邀账户登录/,1],
+    [renderToStaticMarkup(await Jobs({searchParams})),/href="\/jobs\/daily\?sample=1"/,1],
+    [renderToStaticMarkup(await NewJob({searchParams})),/返回任务配置/,1],
+    [renderToStaticMarkup(await EditJob({params:Promise.resolve({id:'weekly'}),searchParams})),/每周经典片单增量/,1],
+    [renderToStaticMarkup(await Jobs({searchParams:Promise.resolve({sample:'1'})})),/SAMPLE #0023/,1],
+    [renderToStaticMarkup(<Runs/>),/href="\/runs\/0142"/,1],
+    [renderToStaticMarkup(await RunDetail({params:Promise.resolve({id:'0142'})})),/返回运行历史/,1],
+    [renderToStaticMarkup(<Consumers/>),/vidall-stg-4p9x/,1],
+    [renderToStaticMarkup(<Audit/>),/只读审计流/,0],
+  ] as const;
+  for(const [markup,expected,count] of views){
+    assert.match(markup,expected);
+    assert.equal((markup.match(/data-slot="button" data-variant="default"/g)??[]).length,count);
+  }
+  await assert.rejects(RunDetail({params:Promise.resolve({id:'unknown'})}),{digest:'NEXT_HTTP_ERROR_FALLBACK;404'});
 });
 
 test('dark theme text and primary action meet normal text contrast', () => {
