@@ -7,7 +7,9 @@ import { enqueueDueTemplates, listRecoverableDispatches } from "@/lib/db/schedul
 import { changeWindow, claimIncrementalPlan, commitChangeWindow } from "@/lib/db/incremental";
 import { backfillItems, backfillLimit, finishBackfill, fixBackfillPlan, markFetched, noteFetchFailure, startBackfill, storeFetchedMovie } from "@/lib/db/backfill";
 import { TmdbRequestError } from "@/lib/tmdb/movie-client";
-import { managedTmdbClient, tmdbConfigured } from "@/lib/tmdb/managed-client";
+import { maintainTv } from "@/lib/db/tv-demand";
+import { tvClient } from "@/lib/tmdb/tv-client";
+import { managedTvTransport, managedTmdbClient, tmdbConfigured } from "@/lib/tmdb/managed-client";
 import { movieSelectionSchema } from "@/lib/tmdb/movie-selection";
 import { syncConfigSchema, templateIdSchema } from "./config";
 import { fetchSampleOutcome, sampleFailure } from "./sample";
@@ -27,6 +29,13 @@ export const inngest = new Inngest({
   // Normal runs still require signatures, even in Next.js development.
   isDev: localInngestDemo,
   ...(localInngestDemo && { baseUrl: "http://127.0.0.1:8288" }),
+});
+
+export const tvPrefetchEnabled = !localInngestDemo && process.env.CINERELAY_TV_PREFETCH === "1";
+export const tvPrefetch = inngest.createFunction({id:"tv-prefetch",triggers:[{cron:"*/10 * * * *"}],retries:0,concurrency:1}, async () => {
+  if (!tvPrefetchEnabled) return {status:"disabled"};
+  try { return await maintainTv(getDb(),()=>tvClient(managedTvTransport(true))); }
+  catch(err){if(err instanceof TmdbRequestError)return {status:err.code};throw new Error("TV maintenance failed");}
 });
 
 export const schedulerEnabled = !localInngestDemo && process.env.CINERELAY_SYNC_SCHEDULER === "1";

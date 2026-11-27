@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import type { WriteDb } from "./sync-runs";
 import { TmdbRequestError } from "@/lib/tmdb/movie-client";
 
-export async function withTmdbPermit<T>(db: WriteDb, work: () => Promise<T>): Promise<T> {
+export async function withTmdbPermit<T>(db: WriteDb, work: () => Promise<T>, background = false): Promise<T> {
   const token = randomUUID();
   const { rows } = await db.execute(sql`
     update public.tmdb_request_gate
@@ -12,7 +12,7 @@ export async function withTmdbPermit<T>(db: WriteDb, work: () => Promise<T>): Pr
         hour_start = date_trunc('hour',now(),'UTC')
     where id and (lease_until is null or lease_until <= now())
       and (cooldown_until is null or cooldown_until <= now())
-      and (hour_start <> date_trunc('hour',now(),'UTC') or request_count < 600)
+      and (hour_start <> date_trunc('hour',now(),'UTC') or request_count < ${background ? 480 : 600})
     returning id`);
   if (!rows.length) {
     const state = await db.execute(sql`select greatest(now() + interval '2 seconds', cooldown_until, lease_until,
