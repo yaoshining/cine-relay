@@ -17,13 +17,6 @@ export const movies = ([
 ] satisfies Omit<Movie,"locale">[]).map((movie):Movie=>({...movie,locale:"zh-CN"}));
 export type Movie = {id:string;title:string;en:string;genre:string;year:number;locale:"zh-CN";status:"新鲜"|"已过期";art:"shore"|"planet"|"rain"|"ocean"|"dune"|"snow"|"field"|"cinema"|"city"|"valley";language:string;runtime:number;overview:string};
 
-export function filterMovies(query: string, status = "all", sort = "recent", locale = "all") {
-  const text = query.trim().replace(/^#/, "").toLocaleLowerCase();
-  const result = movies.filter(m => (status === "all" || m.status === status) && (locale==="all" || m.locale===locale) &&
-    [m.title, m.en.toLocaleLowerCase(), m.id].some(field => field.includes(text)));
-  return sort === "title" ? result.sort((a,b)=>a.title.localeCompare(b.title,"zh-CN")) : result;
-}
-
 export const phases = [
   { label: "已发现", count: 1280 }, { label: "已入队", count: 1280 },
   { label: "已抓取", count: 1246 }, { label: "已入库", count: 1240 },
