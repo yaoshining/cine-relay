@@ -8,6 +8,11 @@
 - 实施中发现需要调整的设计或验收标准，先更新对应变更，再继续实现。对外 API 的 OpenAPI 契约和 `/docs/api` 展示必须与 OpenSpec 中的行为规范保持一致。
 - 交付前运行 `openspec validate <change-id> --strict` 和相关测试；只勾选已完成并验证的任务。验收通过后按 OpenSpec 流程归档，并同步生效规范。
 
+## 分支与预览发布
+
+- `staging` 是固定的 Vercel Preview 验收分支。功能和修复可以在各自的分支开发；创建或更新日常 PR 时默认以 `staging` 为目标分支，合入后用固定分支 URL 验收。
+- `main` 只用于生产发布；预览通过且明确获准上线后，才以 `main` 为发布 PR 的目标。不为生成预览而推送或合入 `main`。
+
 ## Pomodoist：开发进度
 
 - 使用 Pomodoist 中已存在的 `CineRelay` 项目，不创建同名或替代项目。在该项目下按开发会话分组任务，同一会话内的多轮交流和多个 OpenSpec 变更归在同一组，不按变更或单条实施事项另建分组。可附相关 `<change-id>` 供追溯；实施细项以 OpenSpec 的 `tasks.md` 为准。

@@ -92,13 +92,14 @@ async function oauth(app, loginHtml, code, corruptState = false) {
   const jar = readCookies(begin);
   await begin.body?.cancel();
   const params = new URLSearchParams({ code, state: corruptState ? "wrong-state" : state });
-  const response = await app.request(`/api/auth/callback/github?${params}`, { headers: { Cookie: cookieHeader(jar) } });
+  const callbackPath = `/api/auth/callback/github?${params}`;
+  const response = await app.request(callbackPath, { headers: { Cookie: cookieHeader(jar) } });
   assert.equal(response.status, 302, app.log());
   const target = new URL(response.headers.get("location"), app.origin);
   assert.equal(target.origin, app.origin);
   const setCookies = response.headers.getSetCookie();
   await response.body?.cancel();
-  return { jar: readCookies(response, jar), target, setCookies };
+  return { jar: readCookies(response, jar), target, setCookies, callbackPath };
 }
 
 test("production HTTP: GitHub invitation, audit, route guards, revocation and logout", { timeout: 60_000 }, async (t) => {
@@ -135,6 +136,27 @@ test("production HTTP: GitHub invitation, audit, route guards, revocation and lo
   assert.ok(invited.jar.has(sessionCookie), app.log());
   assert.ok(invited.setCookies.some((cookie) => cookie.startsWith(sessionCookie + "=") && /HttpOnly.*SameSite=Lax/i.test(cookie)));
   const headers = { Cookie: cookieHeader(invited.jar) };
+  // The original callback consumed its OAuth cookies. Replaying it must still fail,
+  // but the resulting error page should honor the already established session.
+  assert.equal(invited.jar.has("authjs.state"), false);
+  assert.equal(invited.jar.has("authjs.pkce.code_verifier"), false);
+  const repeated = await app.request(invited.callbackPath, { headers });
+  assert.equal(repeated.status, 302);
+  const callbackError = new URL(repeated.headers.get("location"), app.origin);
+  assert.equal(callbackError.origin, app.origin);
+  assert.equal(callbackError.pathname, "/login");
+  assert.equal(callbackError.searchParams.get("error"), "Configuration");
+  assert.ok(repeated.headers.getSetCookie().every((cookie) => !cookie.startsWith(sessionCookie + "=")));
+  assert.match(app.log(), /\[admin-auth\] InvalidCheck/);
+  await repeated.body?.cancel();
+  const errorPath = callbackError.pathname + callbackError.search;
+  const recovered = await app.request(errorPath, { headers });
+  assert.equal(recovered.status, 307);
+  assert.equal(recovered.headers.get("location"), "/");
+  await recovered.body?.cancel();
+  const anonymousError = await app.request(errorPath);
+  assert.equal(anonymousError.status, 200);
+  assert.match(await anonymousError.text(), /暂时无法完成登录/);
   const dashboard = await app.request("/", { headers });
   assert.equal(dashboard.status, 200);
   assert.match(dashboard.headers.get("cache-control"), /no-store/);
@@ -188,6 +210,9 @@ test("production HTTP: GitHub invitation, audit, route guards, revocation and lo
   const revoked = await reconfigured.request("/api/admin/audit", { headers });
   assert.equal(revoked.status, 401);
   await revoked.body.cancel();
+  const revokedError = await reconfigured.request(errorPath, { headers });
+  assert.equal(revokedError.status, 200);
+  assert.match(await revokedError.text(), /暂时无法完成登录/);
   const revokedPage = await reconfigured.request("/", { headers });
   assert.equal(revokedPage.status, 307);
   await revokedPage.body.cancel();

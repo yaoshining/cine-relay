@@ -18,7 +18,7 @@
 ### 1.3 管理员认证与审计
 
 - Auth.js GitHub OAuth 使用 JWT Cookie，不存 OAuth access token、邮箱或昵称；Cookie 仅含认证所需的 GitHub 账户 ID、签发时间与 Auth.js 会话元数据，最长 8 小时（绝对时限）。邀请名单使用 `ADMIN_GITHUB_IDS`，逗号分隔正整数账户 ID，空值或任一条无效均拒绝所有账户。OAuth 仅请求 `read:user`，以 GitHub 用户接口返回的数字账户 ID 判定资格；每次读取后台页面、管理 API 或会话均重新核对。移除账户并使配置生效后，旧 Cookie 不再授权。
-- 后台页面逐页在读取数据／处理动态段前调用服务端守卫，不依赖客户端、共享 layout 或代理作为唯一鉴权。未授权页面转至 `/login`；内部 `GET /api/admin/audit` 对无有效受邀会话统一返回 401，并禁止缓存（成功及错误均如此）。`/login`、`/docs/api` 和 Auth.js 流程端点不要求管理员会话；公开文档不展示管理导航或管理 API。浏览器通过服务端 POST 操作发起、退出会话；登录后返回固定首页，退出后返回登录页，不接收外部跳转地址。
+- 后台页面逐页在读取数据／处理动态段前调用服务端守卫，不依赖客户端、共享 layout 或代理作为唯一鉴权。未授权页面转至 `/login`；内部 `GET /api/admin/audit` 对无有效受邀会话统一返回 401，并禁止缓存（成功及错误均如此）。`/login`、`/docs/api` 和 Auth.js 流程端点不要求管理员会话；公开文档不展示管理导航或管理 API。浏览器通过服务端 POST 操作发起、退出会话；登录后返回固定首页，退出后返回登录页，不接收外部跳转地址。`/login` 即使收到 Auth.js 的错误参数，也先用原服务端守卫复核已有会话和当前白名单：有效则返回固定首页，否则保留错误提示和重试入口。重复回调仍由 Auth.js 按 `state` 和 PKCE 拒绝；错误页不签发会话、不补写准入审计。
 - 运行配置：`AUTH_URL` 为部署站点的规范 origin（生产 HTTPS；本地使用 `http://localhost:3000`，勿混用 127.0.0.1，以保持 OAuth 回调和 Cookie 同源），GitHub OAuth App 的回调 URL 为该 origin 加 `/api/auth/callback/github`；`AUTH_GITHUB_ID`、`AUTH_GITHUB_SECRET` 由 OAuth App 提供，`AUTH_SECRET` 使用强随机值（例如 `openssl rand -hex 32`）。本地配置放入忽略的 `.env.local`；生产配置与真实联调留到后续部署／验收。缺少或无效的 OAuth 配置时返回不可用状态，管理页面仍拒绝访问。
 - 对有合法数字账户 ID 的 OAuth 回调，将准入判定 `admin.oauth.admission` 的允许／拒绝写入现有 `admin_audit_events`。写入失败不签发会话；只记录固定动作、GitHub 数字 ID 和结果，不写 OAuth 请求体、令牌、Cookie、原始错误或授权头。匿名请求及外部 Bearer 无可验证的 GitHub 身份，不写该审计表。审计页／内部接口展示最新至多 100 条真实事件，页面按类别、结果、时间和文本筛选及分页；数据库不可用时显示错误，不回退到演示数据。后续接入真实敏感写操作时各自写审计。
 - 本地及 CI 使用合成身份、会话和 PGlite 验证默认拒绝、撤销后旧会话失效、OAuth 准入审计及写失败拒绝；检查生产构建的后台页面／管理 API 无 Cookie 和持 Bearer 均无数据，公开文档可访问。不开启演示绕过。
@@ -99,6 +99,11 @@
 2. 生产秘密使用 Vercel 环境变量／秘密配置；采用最小数据库权限。迁移在部署前显式执行，不在每次构建或预览部署自动写生产库。
 3. EdgeOne 接入生产域名并回源 Vercel。先仅缓存静态文件和公开文档；登录、后台、鉴权 API 和 Inngest 入口禁止边缘缓存。EdgeOne 不加速 Vercel 到 TMDB 的回源，接入前验证 TLS、回调、鉴权头透传、绕开边缘直接访问仍须鉴权。国内加速的域名及合规条件在接入时核验。
 4. 本地验收 → 显式迁移 → 受限生产烟测 → 开启定时和多凭据 → EdgeOne 接入验证。异常时可关闭定时／暂停抓取；回滚应用版本，不自动逆转已提交数据。
+
+#### 分支与固定预览地址
+
+- `staging` 是日常 PR 的默认目标和固定 Preview 验收分支。功能分支可以独立开发；合入 `staging` 后由 Vercel Git 集成自动构建 Preview 并使用固定分支域名验证。`main` 仍是 Vercel Production 跟踪分支，不为预览推送到 `main`，正式发布须另行明确授权。
+- 固定验收 origin 为 `https://cine-relay-git-staging-yaoshinings-projects-5cf8b607.vercel.app`。`staging` 的 `AUTH_URL` 使用该 origin；独立 GitHub OAuth App 的回调为该 origin 加 `/api/auth/callback/github`，不使用每次构建生成的地址。OAuth 和其他联调配置只用于 `staging` 的 Preview，数据库使用已迁移的 Neon 独立结构分支（不复制生产行）；登录验收阶段 Vercel 仅持有可查询及插入授权审计的非所有者角色，正式同步所需写权限另行验收；不影响本地和生产。
 
 #### 联调与上线验收
 
