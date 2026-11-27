@@ -31,10 +31,9 @@ export const inngest = new Inngest({
   ...(localInngestDemo && { baseUrl: "http://127.0.0.1:8288" }),
 });
 
-export const tvPrefetchEnabled = !localInngestDemo && process.env.CINERELAY_TV_PREFETCH === "1";
-export const tvPrefetch = inngest.createFunction({id:"tv-prefetch",triggers:[{cron:"*/10 * * * *"}],retries:0,concurrency:1}, async () => {
-  if (!tvPrefetchEnabled) return {status:"disabled"};
-  try { return await maintainTv(getDb(),()=>tvClient(managedTvTransport(true))); }
+const tvPrefetchEnabled = !localInngestDemo && process.env.CINERELAY_TV_PREFETCH === "1";
+export const tvMaintenance = inngest.createFunction({id:"tv-maintenance",triggers:[{cron:"*/10 * * * *"}],retries:0,concurrency:1}, async () => {
+  try { return await maintainTv(getDb(),tvPrefetchEnabled ? ()=>tvClient(managedTvTransport(true)) : undefined); }
   catch(err){if(err instanceof TmdbRequestError)return {status:err.code};throw new Error("TV maintenance failed");}
 });
 

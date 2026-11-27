@@ -28,6 +28,13 @@ test('真实 SQL：搜索、确认归属、并发、近期热度、共享额度�
   for(const sid of [id,crypto.randomUUID(),crypto.randomUUID()]){await ask('search',sid,q);for(let i=0;i<2;i++)assert.equal((await ask('confirm',sid,'',{searchId:sid,seriesId:'101'})).status,200);}
   assert.equal((await ask('confirm',id,'',{searchId:id,seriesId:'102'})).status,409);
   const stats=await demandStats(db);assert.equal(stats.queries[0].searches,3);assert.equal(stats.confirmed[0].confirmations,3);
+  // Default mode still enforces retention, even with eligible hot demand and no TMDB client.
+  await pg.exec(`insert into tv_cache(resource,purge_after) values('expired',now()-interval '1 second');
+    insert into tv_search_operations(consumer_id,search_id,conditions,created_at) select id,gen_random_uuid(),'{}',now()-interval '25 hours' from consumer_keys limit 1;`);
+  assert.deepEqual(await maintainTv(db),{status:'cleaned'});
+  assert.equal((await pg.query("select resource from tv_cache where resource='expired'")).rows.length,0);
+  assert.equal((await pg.query("select search_id from tv_search_operations")).rows.length,3);
+  assert.equal(series,0);
   assert.deepEqual(await maintainTv(db,()=>client),{status:'refreshed'});assert.deepEqual(await maintainTv(db,()=>client),{status:'idle'});assert.equal(series,1);assert.equal(episodes,0);
   const ep={seriesId:'101',season:'0',episode:'1'};for(const c of ['refreshed','hit'])assert.equal((await (await ask('episode',id,'',undefined,key.token,ep)).json()).cache,c);assert.equal(episodes,1);
   rate=true;assert.equal((await ask('search',crypto.randomUUID(),'?query=空')).status,503);rate=false;empty=true;

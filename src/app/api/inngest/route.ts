@@ -1,11 +1,11 @@
 import { serve } from "inngest/next";
 import { NextRequest } from "next/server";
-import { backfillRun, inngest, localInngestDemo, sampleRun, scanSyncSchedules, schedulerEnabled, tvPrefetchEnabled, tvPrefetch, validateMovieSelection } from "@/lib/sync/inngest";
+import { backfillRun, inngest, localInngestDemo, sampleRun, scanSyncSchedules, schedulerEnabled, tvMaintenance, validateMovieSelection } from "@/lib/sync/inngest";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const handlers = serve({ client: inngest, functions: localInngestDemo ? [validateMovieSelection] : [sampleRun, backfillRun, ...(tvPrefetchEnabled ? [tvPrefetch] : []), ...(schedulerEnabled ? [scanSyncSchedules] : [])] });
+const handlers = serve({ client: inngest, functions: localInngestDemo ? [validateMovieSelection] : [sampleRun, backfillRun, tvMaintenance, ...(schedulerEnabled ? [scanSyncSchedules] : [])] });
 const maxPayload = 128 * 1024;
 const headers = { "Cache-Control": "no-store" };
 
