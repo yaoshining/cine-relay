@@ -111,7 +111,8 @@ test("production HTTP: GitHub invitation, audit, route guards, revocation and lo
   const docs = await app.request("/docs/api");
   assert.equal(docs.status, 200);
   const docsHtml = await docs.text();
-  assert.doesNotMatch(docsHtml, /aria-label="管理后台"|\/api\/admin\/audit/);
+  assert.doesNotMatch(docsHtml, /aria-label="管理后台"|\/api\/admin\/audit|管理员登录/);
+  assert.match(docsHtml, /<a\b[^>]*href="\/"[^>]*>[\s\S]*?返回 CineRelay<\/a>/);
   const cssPaths = [...docsHtml.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*href="([^"?]+\.css)"/g)].map(([, href]) => href);
   const styles = await Promise.all(cssPaths.map(async (path) => {
     const stylesheet = await app.request(path);
