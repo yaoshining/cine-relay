@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 import { PGlite } from "@electric-sql/pglite";
+import { DrizzleQueryError } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import { parseSyncForm } from "../src/lib/sync/config";
 import { fetchSampleOutcome, sampleSummarySchema } from "../src/lib/sync/sample";
@@ -157,4 +158,70 @@ test("manual backfill separates fetch and commit, preserves timestamps and retri
   assert.deepEqual(await findMovieCache(db, 10n, "zh-CN"), stored);
   assert.equal((await db.select().from(schema.syncCursors)).length, 0);
   assert.equal((await db.select().from(schema.movieSyncJobs)).length, 0);
+});
+
+test("a non-owner can run a staging backfill without broader write grants", async (t) => {
+  const pg = new PGlite();
+  t.after(() => pg.close());
+  for (const name of (await readdir("db/migrations")).filter((name) => name.endsWith(".sql")).sort()) {
+    await pg.exec(await readFile(`db/migrations/${name}`, "utf8"));
+  }
+  const db = drizzle(pg, { schema });
+  const actor = "101";
+  const preset = parseSyncForm(form()).data!;
+  const config = { ...preset, schedule: { kind: "manual" } as const, selection: { ...preset.selection, limit: 1 } };
+  const templateId = (await saveTemplate(db, config, actor))!;
+  assert.ok(templateId);
+
+  await pg.exec(`
+    CREATE ROLE staging_backfill_test;
+    GRANT USAGE ON SCHEMA public TO staging_backfill_test;
+    GRANT SELECT ON public.sync_job_templates, public.sync_job_runs, public.sync_cursors,
+      public.movies, public.movie_localizations TO staging_backfill_test;
+    GRANT INSERT (template_id, trigger_type, config_snapshot) ON public.sync_job_runs TO staging_backfill_test;
+    GRANT UPDATE (status, started_at, finished_at, result_summary) ON public.sync_job_runs TO staging_backfill_test;
+    GRANT INSERT (actor_github_id, action, target_type, target_id, outcome)
+      ON public.admin_audit_events TO staging_backfill_test;
+    SET ROLE staging_backfill_test;
+  `);
+  await assert.rejects(createBackfill(db, templateId, actor), (error: unknown) =>
+    error instanceof DrizzleQueryError && error.cause instanceof Error && "code" in error.cause && error.cause.code === "42501");
+  assert.deepEqual(await listRuns(db), []);
+  await pg.exec(`
+    RESET ROLE;
+    GRANT INSERT (cursor_generation) ON public.sync_job_runs TO staging_backfill_test;
+    GRANT SELECT ON public.sync_run_items TO staging_backfill_test;
+    GRANT INSERT (run_id, tmdb_id, position), UPDATE (status, fetched_at, error_code)
+      ON public.sync_run_items TO staging_backfill_test;
+    GRANT INSERT (tmdb_id, original_title, release_date, genre_ids, updated_at, original_language, runtime_minutes),
+      UPDATE (original_title, release_date, genre_ids, updated_at, original_language, runtime_minutes)
+      ON public.movies TO staging_backfill_test;
+    GRANT INSERT (tmdb_id, locale, title, overview, poster_path, fetched_at, expires_at, purge_after),
+      UPDATE (title, overview, poster_path, fetched_at, expires_at, purge_after)
+      ON public.movie_localizations TO staging_backfill_test;
+    SET ROLE staging_backfill_test;
+  `);
+  const runId = await createBackfill(db, templateId, actor);
+  assert.ok(runId);
+  assert.deepEqual((await startBackfill(db, runId))?.config_snapshot, config);
+  await fixBackfillPlan(db, runId, [10], false);
+  const movie = fixtureMovie(10);
+  await markFetched(db, runId, movie);
+  await storeFetchedMovie(db, runId, movie);
+  assert.equal(await finishBackfill(db, runId), "completed");
+  assert.deepEqual((await backfillItems(db, runId)).map(({ status }) => status), ["stored"]);
+  assert.equal((await findMovieCache(db, 10n, "zh-CN"))?.localization.title, movie.title);
+  for (const statement of [
+    "ALTER TABLE public.movies ADD COLUMN unexpected text",
+    "UPDATE public.movies SET removed_at = now() WHERE tmdb_id = 10",
+    "DELETE FROM public.movies WHERE tmdb_id = 10",
+    "UPDATE public.sync_job_templates SET enabled = true",
+    "UPDATE public.sync_cursors SET cursor_state = '{}'",
+    "INSERT INTO public.consumer_keys(name, token_hash) VALUES ('synthetic', repeat('0', 64))",
+  ]) {
+    await assert.rejects(pg.exec(statement), { code: "42501" });
+  }
+  await pg.exec("RESET ROLE");
+  const audit = await db.select().from(schema.adminAuditEvents);
+  assert.deepEqual(audit.filter(({ action }) => action === "sync.backfill.requested").map(({ targetId }) => targetId), [runId]);
 });

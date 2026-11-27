@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import Overview from '../src/app/(admin)/view';
 import { LoginView } from '../src/app/login/view';
 import { AuditLog } from '../src/components/audit-log';
+import { CacheMoviePoster } from '../src/components/cache-movie-poster';
 import { Catalog } from '../src/components/catalog';
 import { completion, movies, navigation } from '../src/lib/demo';
 import { parseCatalogParams } from '../src/lib/movie-catalog';
@@ -19,6 +20,18 @@ test('dashboard is a labelled offline demo and renders six local posters without
   assert.equal((markup.match(/class="poster-link"/g)??[]).length,6);
   for(const m of movies.slice(0,6)) assert.ok(!markup.includes(`/movies/${m.id}`));
   assert.doesNotMatch(markup,/\b(?:href|src|action)="https?:\/\//);
+});
+
+test('cached posters use the TMDB CDN directly and reject missing or foreign paths', () => {
+  for (const full of [false, true]) {
+    const html = renderToStaticMarkup(<CacheMoviePoster path="/fixture.jpg" full={full}/>);
+    assert.ok(html.includes(`src="https://image.tmdb.org/t/p/${full ? 'w500' : 'w342'}/fixture.jpg"`));
+  }
+  for (const path of [null, 'https://example.org/image.jpg', '//other/image.jpg', '/../image.jpg']) {
+    const html = renderToStaticMarkup(<CacheMoviePoster path={path}/>);
+    assert.match(html, /暂无海报/);
+    assert.doesNotMatch(html, /<img/);
+  }
 });
 
 test('each navigation route is unique and has its own App Router page', () => {

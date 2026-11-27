@@ -33,6 +33,7 @@ export async function listMovieCatalog(db: MovieQueryDb, filters: CatalogFilters
     tmdbId: loc.tmdbId,
     locale: loc.locale,
     title: loc.title,
+    posterPath: loc.posterPath,
     releaseDate: movies.releaseDate,
     status,
   }).from(loc)

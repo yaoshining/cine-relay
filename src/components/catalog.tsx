@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Clapperboard, LayoutGrid, List, Search } from "lucide-react";
-import { CacheMoviePoster, CacheMovieStatus } from "@/components/cache-movie";
+import { CacheMoviePoster } from "@/components/cache-movie-poster";
+import { CacheMovieStatus } from "@/components/cache-movie";
 import { Callout } from "@/components/console";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ export function Catalog({ filters, result }: { filters: CatalogFilters; result: 
         {entries.map((movie) => {
           const href = movieCacheHref(movie.tmdbId, movie.locale);
           return <article className="movie-tile" key={`${movie.tmdbId}:${movie.locale}`}>
-            <Link href={href} prefetch={false} className="poster-link" aria-label={`查看 ${movie.title}（${movie.locale}）`}><CacheMoviePoster/></Link>
+            <Link href={href} prefetch={false} className="poster-link" aria-label={`查看 ${movie.title}（${movie.locale}）`}><CacheMoviePoster path={movie.posterPath}/></Link>
             <div className="movie-tile-title"><h3><Link href={href} prefetch={false}>{movie.title}</Link></h3><span className="mono">{movie.releaseDate?.slice(0,4) ?? "—"}</span></div>
             <div className="movie-meta"><span className="mono">#{movie.tmdbId}</span><Badge variant="secondary">{movie.locale}</Badge><CacheMovieStatus status={movie.status}/></div>
           </article>;
