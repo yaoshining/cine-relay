@@ -4,6 +4,8 @@ import {
   primaryKey, text, timestamp, unique, uuid,
 } from "drizzle-orm/pg-core"
 
+export * from './tv-schema';
+
 export const movieLocales = ["zh-CN", "en-US"] as const
 export type MovieLocale = (typeof movieLocales)[number]
 

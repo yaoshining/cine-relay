@@ -25,11 +25,14 @@ export function revokeConsumerKey(db: WriteDb, id: string, actor: string) {
   ) select id from changed`);
 }
 
-export async function authorizeConsumer(db: WriteDb, authorization: string | null) {
+export async function consumerIdentity(db: WriteDb, authorization: string | null) {
   const token = tokenPattern.exec(authorization ?? "")?.[1];
-  if (!token) return false;
-  const id = await changeId(db, sql`select id from public.consumer_keys where token_hash = ${hashToken(token)} and revoked_at is null`);
-  return !!id;
+  if (!token) return null;
+  return changeId(db, sql`select id from public.consumer_keys where token_hash = ${hashToken(token)} and revoked_at is null`);
+}
+
+export async function authorizeConsumer(db: WriteDb, authorization: string | null) {
+  return !!await consumerIdentity(db, authorization);
 }
 
 export async function listConsumerKeys(db: WriteDb) {

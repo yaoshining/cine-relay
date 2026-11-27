@@ -1,3 +1,4 @@
+import { tvPaths } from "./tv-contract";
 import { z } from "zod";
 
 export const consumerMovieSchema = z.object({
@@ -27,7 +28,9 @@ export const consumerOpenApi = {
   info: { title: "CineRelay API", version: "1.0.0", description: "从服务端调用；不要将应用密钥嵌入网站或客户端。" },
   servers: [{ url: "/" }],
   components: { securitySchemes: { AppKey: { type: "http", scheme: "bearer" } } },
+  security: [{ AppKey: [] }],
   paths: {
+    ...tvPaths,
     "/api/v1/movies/{tmdbId}": {
       get: {
         operationId: "getMovie",

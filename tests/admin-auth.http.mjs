@@ -450,7 +450,7 @@ test("production HTTP: isolated docs and external keys, offline OpenAPI and cach
   assert.equal(pkg.status, 200);
   assert.equal(pkg.headers.get("cache-control"), "private, no-store");
   const contract = await pkg.json();
-  assert.deepEqual(Object.keys(contract.paths), ["/api/v1/movies/{tmdbId}"]);
+  assert.deepEqual(Object.keys(contract.paths).sort(), ["/api/v1/movies/{tmdbId}", "/api/v1/search/tv", "/api/v1/search/tv/confirm", "/api/v1/tv/{seriesId}", "/api/v1/tv/{seriesId}/season/{season}/episode/{episode}"].sort());
   const offlinePath = "/openspec/contracts/consumer-movie-api.openapi.json";
   const offline = JSON.parse(readFileSync(new URL(`..${offlinePath}`, import.meta.url), "utf8"));
   assert.deepEqual(offline, contract, "Regenerate the offline contract with npm run export:openapi");
@@ -478,6 +478,13 @@ test("production HTTP: isolated docs and external keys, offline OpenAPI and cach
   const refreshed = await app.request("/api/v1/movies/70", { headers: caller });
   assert.equal(refreshed.status, 200);
   assert.equal((await refreshed.json()).cache, "refreshed");
+  const searchId = crypto.randomUUID();
+  const tvSearch = await app.request("/api/v1/search/tv?query=Synthetic", {headers:{...caller,"X-Search-Id":searchId}});
+  assert.equal(tvSearch.status,200);const seriesId=(await tvSearch.json()).results[0].seriesId;
+  const confirmation=await app.request("/api/v1/search/tv/confirm",{method:"POST",headers:{...caller,"Content-Type":"application/json"},body:JSON.stringify({searchId,seriesId})});
+  assert.equal(confirmation.status,200);assert.deepEqual(await confirmation.json(),{searchId,seriesId});
+  const seriesResponse=await app.request("/api/v1/tv/"+seriesId,{headers:caller});assert.equal((await seriesResponse.json()).seasons[0].episodeCount,5);
+  for(const cache of ["refreshed","hit"]){const ep=await app.request("/api/v1/tv/"+seriesId+"/season/1/episode/5",{headers:caller});assert.equal((await ep.json()).cache,cache);}
   const repeated = await app.request("/api/v1/movies/70", { headers: caller });
   assert.equal((await repeated.json()).cache, "hit");
   const limited = await app.request("/api/v1/movies/71", { headers: caller });

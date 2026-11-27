@@ -6,15 +6,16 @@
   },
   "scripts": {
     "import:tmdb": "node scripts/tmdb_import.mjs",
+    "dev:tv-fixture": "tsx scripts/tv-relay-fixture.ts",
     "export:openapi": "tsx scripts/export-openapi.ts",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:db": "tsx --test tests/db.test.ts tests/movie-catalog.test.ts tests/sync-runs.test.ts tests/consumer-api.test.ts tests/schedules.test.ts tests/test_tmdb_import.mjs",
+    "test:db": "tsx --test tests/db.test.ts tests/movie-catalog.test.ts tests/sync-runs.test.ts tests/consumer-api.test.ts tests/schedules.test.ts tests/tv-relay.test.ts tests/test_tmdb_import.mjs",
     "test:auth:http": "node --test tests/admin-auth.http.mjs",
-    "test": "npm run test:db && tsx --test tests/admin-auth.test.ts tests/tmdb-sample.test.ts tests/*.test.tsx && python3 -m unittest discover -s tests"
+    "test": "npm run test:db && tsx --test tests/admin-auth.test.ts tests/tmdb-sample.test.ts tests/tv-relay-fixture.test.ts tests/*.test.tsx && python3 -m unittest discover -s tests"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.2.1",
