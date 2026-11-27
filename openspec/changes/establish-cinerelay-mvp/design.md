@@ -97,7 +97,7 @@
 
 1. 将 Web、外部 API 与 Inngest 任务端点部署在同一 Vercel 应用，运行区域优先 `sin1`，靠近现有 Neon 新加坡实例。
 2. 生产秘密使用 Vercel 环境变量／秘密配置；采用最小数据库权限。迁移在部署前显式执行，不在每次构建或预览部署自动写生产库。
-3. EdgeOne 接入生产域名并回源 Vercel。先仅缓存静态文件和公开文档；登录、后台、鉴权 API 和 Inngest 入口禁止边缘缓存。EdgeOne 不加速 Vercel 到 TMDB 的回源，接入前验证 TLS、回调、鉴权头透传、绕开边缘直接访问仍须鉴权。国内加速的域名及合规条件在接入时核验。
+3. EdgeOne 对外使用 `https://cine-relay.vidall.top`，HTTPS 回源使用 Vercel Production 固定域名 `cine-relay.vercel.app`（非单次部署域名）。生产 `AUTH_URL` 与独立 GitHub OAuth App 的回调 origin 均为公开域名；回调路径为 `/api/auth/callback/github`。初始接入对该域名全路径不启用 EdgeOne 缓存，静态缓存另行验收；透传 Cookie、授权及 Inngest 签名头。切换 DNS 前验证 TLS／回源 Host 与 SNI、公开域名下的 Next.js Server Action、回调、鉴权和匿名拒绝；生产实测回源 `x-forwarded-host` 为 `cine-relay.vercel.app`，浏览器 Origin 为 `https://cine-relay.vidall.top`；Next.js `serverActions.allowedOrigins` 只增加精确主机 `cine-relay.vidall.top`，不使用通配符，不关闭 CSRF 或 OAuth 检查。EdgeOne 不加速 Vercel 到 TMDB 的回源；国内加速范围遵守已有站点地域与备案要求。
 4. 本地验收 → 显式迁移 → 受限生产烟测 → 开启定时和多凭据 → EdgeOne 接入验证。异常时可关闭定时／暂停抓取；回滚应用版本，不自动逆转已提交数据。
 
 #### 分支与固定预览地址
@@ -110,7 +110,7 @@
 | 阶段 | 必须实际验证的结果 |
 | --- | --- |
 | 2.5 本地与真实上游联调 | 在隔离测试库用受邀 GitHub 身份登录，查到一条已合法导入的电影；用 TMDB 和 Inngest 的测试环境验证试抓与小批正式同步，记录确切的 Inngest 运行 ID、终态和电影入库结果。在 VidAll 服务端配置独立 Bearer，验证缓存命中、无效凭据拒绝和撤销；失败路径可使用模拟环境，勿故意消耗真实配额。若使用 Inngest Cloud，先提供可到达的 HTTPS 函数入口，再同步应用，不把本地无副作用示例当作验收。 |
-| 3.3 生产配置 | 核对 TMDB 对持久化及向 VidAll 提供元数据的授权，以及实际页面的认可标志和免责声明；未核准前不对外提供真实数据。确认 Vercel、Neon 与 Inngest 的生产目标后，先关闭扫描，演练并显式迁移，设置公开 origin 和 GitHub OAuth 回调，同步签名验证的 `/api/inngest`，重做登录、只读缓存和隔离的 Bearer 烟测。 |
+| 3.3 生产配置 | 核对 TMDB 对持久化及向 VidAll 提供元数据的授权，以及实际页面的认可标志和免责声明；未核准前不对外提供真实数据。确认 Vercel、Neon 与 Inngest 的生产目标后，先关闭扫描，演练、记录恢复点并显式迁移。生产登录和只读验收阶段使用独立的非所有者应用角色，仅查询业务数据及插入登录审计；正式写入和执行权限按后续验收授予。设置公开 origin 和 GitHub OAuth 回调，同步签名验证的 `/api/inngest`，重做登录、只读缓存和隔离的 Bearer 烟测。 |
 | 3.4 EdgeOne | 切换前验证证书／SNI、公开域名 OAuth 回调、`Authorization` 与签名头透传、回源鉴权。静态资源／公开文档可按规则缓存；对登录、管理页和受保护 API 使用两种调用身份验证响应不在边缘复用。核对国内接入条件后才切换 DNS；异常时恢复旧路由，并复核回调域名。 |
 | 3.5 观察与归档 | 上线后检查完整一周：比对 Neon 计算与存储、Inngest 执行及失败恢复；抽查定时槽位去重、增量游标停滞和共享退避。所有待办有证据、严格校验通过后再归档。 |
 

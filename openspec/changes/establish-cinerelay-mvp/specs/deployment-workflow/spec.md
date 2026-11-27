@@ -13,3 +13,13 @@
 
 - **WHEN** `staging` 的新版本完成部署
 - **THEN** 管理员仍在固定分支地址登录，OAuth 回调不随单次部署的 URL 变化；预览不复用生产的会话秘密或数据库
+
+#### Scenario: 生产通过 EdgeOne 访问
+
+- **WHEN** 生产通过 `https://cine-relay.vidall.top` 提供服务
+- **THEN** EdgeOne 通过 HTTPS 回源至 `cine-relay.vercel.app` 的稳定生产部署；GitHub OAuth 发起和回调均使用公开域名，受保护响应不得共享缓存；会话和准入审计仍必须通过原有校验
+
+#### Scenario: EdgeOne 回源主机与浏览器来源不同
+
+- **WHEN** 正式域名的登录 Server Action 经 EdgeOne 到达 Vercel，回源主机与浏览器来源不同
+- **THEN** 只为精确公开主机允许该代理差异，其他不匹配来源仍被拒绝，GitHub OAuth 回跳仍使用正式域名
