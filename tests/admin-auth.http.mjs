@@ -71,12 +71,12 @@ function readCookies(response, jar = new Map()) {
 }
 const cookieHeader = (jar) => [...jar].map(([key, value]) => `${key}=${value}`).join("; ");
 
-async function submitAction(app, path, html, jar = new Map()) {
+async function submitAction(app, path, html, jar = new Map(), origin = app.origin) {
   const action = html.match(/name="(\$ACTION_ID_[^"]+)"/)?.[1];
   assert.ok(action, `Missing server action form at ${path}`);
   const body = new FormData();
   body.append(action, "");
-  return app.request(path, { method: "POST", body, headers: { Origin: app.origin, Cookie: cookieHeader(jar) } });
+  return app.request(path, { method: "POST", body, headers: { Origin: origin, Cookie: cookieHeader(jar) } });
 }
 
 async function oauth(app, loginHtml, code, corruptState = false) {
@@ -223,6 +223,25 @@ test("production HTTP: GitHub invitation, audit, route guards, revocation and lo
   assert.ok(logout.headers.getSetCookie().some((entry) => entry.startsWith(sessionCookie + "=;")));
   await logout.body?.cancel();
   assert.doesNotMatch(app.log(), /do-not-retain@example.test|synthetic-oauth-secret|postgresql:\/\//);
+});
+
+test("production HTTP: only the exact EdgeOne public host can start login across the proxy", { timeout: 30_000 }, async (t) => {
+  const app = await startApp(t, "101");
+  const login = await app.request("/login");
+  const html = await login.text();
+  const allowed = await submitAction(app, "/login", html, undefined, "https://cine-relay.vidall.top");
+  assert.equal(allowed.status, 303, app.log());
+  const github = new URL(allowed.headers.get("location"));
+  assert.equal(github.origin + github.pathname, "https://github.com/login/oauth/authorize");
+  assert.equal(github.searchParams.get("redirect_uri"), app.origin + "/api/auth/callback/github");
+  await allowed.body?.cancel();
+  for (const origin of ["https://other.vidall.top", "https://cine-relay.vidall.top.example.invalid"]) {
+    const rejected = await submitAction(app, "/login", html, undefined, origin);
+    assert.equal(rejected.status, 500);
+    assert.equal(rejected.headers.get("location"), null);
+    assert.equal(rejected.headers.getSetCookie().length, 0);
+    await rejected.body?.cancel();
+  }
 });
 
 const canonical = (v) => {
