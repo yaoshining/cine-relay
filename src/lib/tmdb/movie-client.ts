@@ -53,7 +53,7 @@ function retryTime(header: string | null, asOf: number) {
 // request. It never retries or rotates a credential in response to a 429.
 export type TmdbRequestGuard = (work: (overrideToken?: string) => Promise<unknown>) => Promise<unknown>;
 
-export function createTmdbMovieClient(token: string, request: typeof fetch = fetch, now: () => number = Date.now,
+export function createTmdbTransport(token: string, request: typeof fetch = fetch, now: () => number = Date.now,
   guard: TmdbRequestGuard = (work) => work()) {
   const requestJson = (path: string, params: URLSearchParams) => guard((overrideToken) => fetchJson(path, params, overrideToken ?? token));
 
@@ -85,6 +85,12 @@ export function createTmdbMovieClient(token: string, request: typeof fetch = fet
     }
   }
 
+  return requestJson;
+}
+
+export function createTmdbMovieClient(token: string, request: typeof fetch = fetch, now: () => number = Date.now,
+  guard: TmdbRequestGuard = (work) => work()) {
+  const requestJson = createTmdbTransport(token, request, now, guard);
   return {
     async discover(scope: MovieSelection, pageBudget = maxDiscoveryPages) {
       const ids = new Set<number>();

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Check } from "lucide-react";
-import { CacheMoviePoster, CacheMovieStatus } from "@/components/cache-movie";
+import { CacheMoviePoster } from "@/components/cache-movie-poster";
+import { CacheMovieStatus } from "@/components/cache-movie";
 import { Callout, Panel } from "@/components/console";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ export function MovieCacheDetail({ detail, locale }: { detail: MovieCatalogDetai
     </header>
     <div className="split movie-detail">
       <aside className="in-card-stack" aria-label="影片元信息">
-        <CacheMoviePoster full/>
+        <CacheMoviePoster path={record?.posterPath} full/>
         <div className="movie-facts"><span>{movie.releaseDate?.slice(0,4) ?? "年份未缓存"}</span><span>{movie.genreIds.map((id) => genres[id] ?? `#${id}`).join(" / ") || "类型未缓存"}</span><span>原片语言：<code>{movie.originalLanguage ?? "未缓存"}</code></span><span>{movie.runtimeMinutes === null ? "片长未缓存" : `${movie.runtimeMinutes} 分钟`}</span></div>
       </aside>
       <div className="in-card-stack">

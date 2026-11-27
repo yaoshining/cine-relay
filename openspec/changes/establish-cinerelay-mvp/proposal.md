@@ -14,7 +14,7 @@ CineRelay 已验证本地抓取、快照校验和批量导入；首批快照包�
 
 ### New Capabilities
 
-- `admin-console`：受邀登录、只读电影查询和操作审计。
+- `admin-console`：受邀登录、只读电影查询、基于缓存路径的 TMDB 海报显示和操作审计。
 - `movie-sync`：任务模板、试抓、回填、增量调度和进度追踪。
 - `tmdb-access-pool`：上游凭据管理、请求预算、冷却和故障切换。
 - `consumer-movie-api`：外部电影详情 API、独立应用鉴权、管理员文档及可在仓库离线读取的 OpenAPI 文件。

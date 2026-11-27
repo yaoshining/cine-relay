@@ -8,7 +8,7 @@ let database;
 let failFirstStore = true;
 async function openDb() {
   const db = new PGlite();
-  for (const name of ["0001_initial.sql", "0002_mvp_data_layer.sql", "0003_sync_sample_runs.sql", "0004_manual_sync_items.sql", "0005_consumer_api.sql", "0006_tmdb_credentials.sql", "0007_incremental_schedule.sql"]) {
+  for (const name of ["0001_initial.sql", "0002_mvp_data_layer.sql", "0003_sync_sample_runs.sql", "0004_manual_sync_items.sql", "0005_consumer_api.sql", "0006_tmdb_credentials.sql", "0007_incremental_schedule.sql", "0008_tv_relay.sql"]) {
     await db.exec(readFileSync(new URL("../../db/migrations/" + name, import.meta.url), "utf8"));
   }
   await db.exec(`
@@ -44,6 +44,10 @@ globalThis.fetch = async (input, init) => {
   if (url.hostname === "api.themoviedb.org") {
     const auth = new Headers(init?.headers).get("authorization");
     if (auth !== "Bearer synthetic-tmdb-token" && auth !== "Bearer synthetic-tmdb-token-with-pool") return new Response(null, { status: 401 });
+    const series = {id:70,name:"合成剧",original_name:"Synthetic",first_air_date:"2023-01-01"};
+    if (url.pathname === "/3/search/tv") return Response.json({page:1,total_results:1,total_pages:1,results:[series]});
+    if (url.pathname === "/3/tv/70") return Response.json({...series,seasons:[{season_number:1,episode_count:5,name:"Season One"}]});
+    if (url.pathname === "/3/tv/70/season/1/episode/5") return Response.json({season_number:1,episode_number:5,name:"Episode Five"});
     if (url.pathname === "/3/discover/movie") return Response.json({ results: [{ id: 70 }, { id: 71 }, { id: 72 }], total_pages: 1 });
     if (url.pathname === "/3/movie/70") return Response.json({ id: 70, title: "合成试抓片名", genres: [] });
     if (url.pathname === "/3/movie/71") return new Response("sensitive synthetic body", { status: 429, headers: { "Retry-After": "30" } });

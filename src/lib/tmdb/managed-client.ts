@@ -3,7 +3,7 @@ import { getDb } from "@/lib/db/client";
 import { withTmdbPermit } from "@/lib/db/tmdb-gate";
 import { nextTmdbCredential, noteTmdbCredential } from "@/lib/db/tmdb-credentials";
 import { openCredential, parsePoolKey } from "./credential-crypto";
-import { createTmdbMovieClient, TmdbRequestError } from "./movie-client";
+import { createTmdbMovieClient, createTmdbTransport, type TmdbRequestGuard, TmdbRequestError } from "./movie-client";
 
 export function tmdbConfigured() {
   return process.env.TMDB_KEY_ENCRYPTION_KEY !== undefined
@@ -11,8 +11,7 @@ export function tmdbConfigured() {
     : !!process.env.TMDB_READ_TOKEN?.trim();
 }
 
-export function managedTmdbClient() {
-  return createTmdbMovieClient("", fetch, Date.now, async (work) => {
+const sharedTmdbGuard = (background = false): TmdbRequestGuard => async (work) => {
     try {
       const db = getDb();
       return await withTmdbPermit(db, async () => {
@@ -42,10 +41,17 @@ export function managedTmdbClient() {
           }
           throw error;
         }
-      });
+      }, background);
     } catch (error) {
       if (error instanceof TmdbRequestError) throw error;
       throw new TmdbRequestError("budget_unavailable");
     }
-  });
+};
+
+export function managedTmdbClient() {
+  return createTmdbMovieClient("", fetch, Date.now, sharedTmdbGuard());
+}
+
+export function managedTvTransport(background = false) {
+  return createTmdbTransport("", fetch, Date.now, sharedTmdbGuard(background));
 }
