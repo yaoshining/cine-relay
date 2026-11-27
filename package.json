@@ -6,6 +6,7 @@
   },
   "scripts": {
     "import:tmdb": "node scripts/tmdb_import.mjs",
+    "export:openapi": "tsx scripts/export-openapi.ts",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

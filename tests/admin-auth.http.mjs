@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createHmac } from "node:crypto";
 import { once } from "node:events";
+import { readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import test from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
@@ -48,7 +49,7 @@ async function startApp(t, ids, enabled = true, sync = false, pool = false, sche
   });
   const request = (path, options) => fetch(origin + path, { redirect: "manual", ...options, signal: AbortSignal.timeout(5000) });
   for (let i = 0; i < 150 && child.exitCode === null; i++) {
-    const ready = await request("/docs/api").catch(() => null);
+    const ready = await request("/login").catch(() => null);
     if (ready?.ok) {
       await ready.body.cancel();
       return { request, origin, log: () => log };
@@ -102,25 +103,43 @@ async function oauth(app, loginHtml, code, corruptState = false) {
   return { jar: readCookies(response, jar), target, setCookies, callbackPath };
 }
 
+async function assertDocsDenied(app, headers = {}) {
+  for (const requestHeaders of [headers, { ...headers, RSC: "1" }]) {
+    let docs = await app.request("/docs/api", { headers: requestHeaders });
+    const location = new URL(docs.headers.get("location") ?? "/", app.origin);
+    // Next adds its RSC cache-busting query before it renders the page.
+    if (requestHeaders.RSC && location.origin === app.origin && location.pathname === "/docs/api" && location.searchParams.has("_rsc")) {
+      assert.equal(docs.status, 307);
+      await docs.body?.cancel();
+      docs = await app.request(location.pathname + location.search, { headers: requestHeaders });
+    }
+    const body = await docs.text();
+    assert.match(docs.headers.get("cache-control"), /no-store/);
+    assert.doesNotMatch(body, /返回 CineRelay|获取单部电影详情|正在载入交互式文档/);
+    if (requestHeaders.RSC && docs.status === 200) {
+      assert.match(docs.headers.get("content-type"), /text\/x-component/);
+      assert.match(body, /NEXT_REDIRECT;(?:replace|push);\/login;307;/);
+    } else {
+      assert.equal(docs.status, 307);
+      const target = new URL(docs.headers.get("location"), app.origin);
+      assert.equal(target.origin, app.origin);
+      assert.equal(target.pathname, "/login");
+    }
+  }
+  const contract = await app.request("/api/v1/openapi.json", { headers });
+  assert.equal(contract.status, 401);
+  assert.equal(contract.headers.get("cache-control"), "private, no-store");
+  assert.deepEqual(await contract.json(), { error: "unauthorized" });
+}
+
 test("production HTTP: GitHub invitation, audit, route guards, revocation and logout", { timeout: 60_000 }, async (t) => {
   const app = await startApp(t, "101,303");
   const login = await app.request("/login");
   assert.equal(login.status, 200);
   const loginHtml = await login.text();
   assert.match(loginHtml, /使用 GitHub 受邀账户登录/);
-  const docs = await app.request("/docs/api");
-  assert.equal(docs.status, 200);
-  const docsHtml = await docs.text();
-  assert.doesNotMatch(docsHtml, /aria-label="管理后台"|\/api\/admin\/audit|管理员登录/);
-  assert.match(docsHtml, /<a\b[^>]*href="\/"[^>]*>[\s\S]*?返回 CineRelay<\/a>/);
-  const cssPaths = [...docsHtml.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*href="([^"?]+\.css)"/g)].map(([, href]) => href);
-  const styles = await Promise.all(cssPaths.map(async (path) => {
-    const stylesheet = await app.request(path);
-    assert.equal(stylesheet.status, 200);
-    return stylesheet.text();
-  }));
-  assert.ok(styles.some((css) => css.includes(".references-layout") && css.includes("--refs-sidebar-width")),
-    "The public docs must load Scalar's official page layout CSS");
+  assert.doesNotMatch(loginHtml, /href="\/docs\/api"/);
+  await assertDocsDenied(app);
 
   for (const path of protectedPaths) {
     const response = await app.request(path);
@@ -223,6 +242,7 @@ test("production HTTP: GitHub invitation, audit, route guards, revocation and lo
   const revokedError = await reconfigured.request(errorPath, { headers });
   assert.equal(revokedError.status, 200);
   assert.match(await revokedError.text(), /暂时无法完成登录/);
+  await assertDocsDenied(reconfigured, headers);
   const revokedPage = await reconfigured.request("/", { headers });
   assert.equal(revokedPage.status, 307);
   await revokedPage.body.cancel();
@@ -403,11 +423,8 @@ test("production HTTP: signed backfill retries only its failed store", { timeout
   assert.match(await (await app.request("/audit", { headers })).text(), /申请正式同步/);
 });
 
-test("production HTTP: external keys, cache-first detail and public OpenAPI", { timeout: 30_000 }, async (t) => {
+test("production HTTP: isolated docs and external keys, offline OpenAPI and cached detail", { timeout: 30_000 }, async (t) => {
   const app = await startApp(t, "101", true, true);
-  const pkg = await app.request("/api/v1/openapi.json");
-  const contract = await pkg.json();
-  assert.deepEqual(Object.keys(contract.paths), ["/api/v1/movies/{tmdbId}"]);
   const path = "/api/v1/movies/9007199254740993";
   const anonymous = await app.request(path);
   assert.equal(anonymous.status, 401);
@@ -415,6 +432,33 @@ test("production HTTP: external keys, cache-first detail and public OpenAPI", { 
   await anonymous.body.cancel();
   const { jar } = await oauth(app, await (await app.request("/login")).text(), "invited");
   const headers = { Cookie: cookieHeader(jar) };
+  const docs = await app.request("/docs/api", { headers });
+  assert.equal(docs.status, 200);
+  assert.match(docs.headers.get("cache-control"), /private.*no-store/);
+  const docsHtml = await docs.text();
+  assert.doesNotMatch(docsHtml, /aria-label="管理后台"|\/api\/admin\/audit|管理员登录/);
+  assert.match(docsHtml, /<a\b[^>]*href="\/"[^>]*>[\s\S]*?返回 CineRelay<\/a>/);
+  const cssPaths = [...docsHtml.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*href="([^"?]+\.css)"/g)].map(([, href]) => href);
+  const styles = await Promise.all(cssPaths.map(async (stylesheetPath) => {
+    const stylesheet = await app.request(stylesheetPath);
+    assert.equal(stylesheet.status, 200);
+    return stylesheet.text();
+  }));
+  assert.ok(styles.some((css) => css.includes(".references-layout") && css.includes("--refs-sidebar-width")),
+    "The administrator docs must load Scalar's official page layout CSS");
+  const pkg = await app.request("/api/v1/openapi.json", { headers });
+  assert.equal(pkg.status, 200);
+  assert.equal(pkg.headers.get("cache-control"), "private, no-store");
+  const contract = await pkg.json();
+  assert.deepEqual(Object.keys(contract.paths), ["/api/v1/movies/{tmdbId}"]);
+  const offlinePath = "/openspec/contracts/consumer-movie-api.openapi.json";
+  const offline = JSON.parse(readFileSync(new URL(`..${offlinePath}`, import.meta.url), "utf8"));
+  assert.deepEqual(offline, contract, "Regenerate the offline contract with npm run export:openapi");
+  const notPublic = await app.request(offlinePath);
+  assert.equal(notPublic.status, 404);
+  await notPublic.body?.cancel();
+  await assertDocsDenied(app);
+
   const adminOnly = await app.request(path, { headers });
   assert.equal(adminOnly.status, 401);
   await adminOnly.body.cancel();
@@ -424,6 +468,7 @@ test("production HTTP: external keys, cache-first detail and public OpenAPI", { 
   const token = (await issued.text()).match(/cr_live_[A-Za-z0-9_-]{43}/)?.[0];
   assert.ok(token, "Expected one-time key");
   const caller = { Authorization: `Bearer ${token}` };
+  await assertDocsDenied(app, caller);
   const fresh = await app.request(path, { headers: caller });
   assert.equal(fresh.status, 200);
   assert.equal(fresh.headers.get("cache-control"), "private, no-store");

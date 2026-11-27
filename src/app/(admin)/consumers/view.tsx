@@ -15,7 +15,7 @@ export default async function Consumers() {
     keys = null;
   }
   return <div className="page-flow">
-    <PageHead title="外部应用" sub="服务端应用密钥与 GitHub 管理员身份互不相通。" action={<Button variant="outline" asChild><Link href="/docs/api">查看公开 API 文档</Link></Button>}/>
+    <PageHead title="外部应用" sub="服务端应用密钥与 GitHub 管理员身份互不相通。" action={<Button variant="outline" asChild><Link href="/docs/api">查看 API 文档</Link></Button>}/>
     {keys === null ? <Callout warning>暂时无法读取凭据，请检查数据库和迁移状态。</Callout> : <>
       <Panel title="签发服务端密钥"><IssueConsumerKey/></Panel>
       <Panel title="最近签发的凭据">
