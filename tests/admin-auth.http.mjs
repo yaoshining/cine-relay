@@ -110,7 +110,17 @@ test("production HTTP: GitHub invitation, audit, route guards, revocation and lo
   assert.match(loginHtml, /使用 GitHub 受邀账户登录/);
   const docs = await app.request("/docs/api");
   assert.equal(docs.status, 200);
-  assert.doesNotMatch(await docs.text(), /aria-label="管理后台"|\/api\/admin\/audit/);
+  const docsHtml = await docs.text();
+  assert.doesNotMatch(docsHtml, /aria-label="管理后台"|\/api\/admin\/audit|管理员登录/);
+  assert.match(docsHtml, /<a\b[^>]*href="\/"[^>]*>[\s\S]*?返回 CineRelay<\/a>/);
+  const cssPaths = [...docsHtml.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*href="([^"?]+\.css)"/g)].map(([, href]) => href);
+  const styles = await Promise.all(cssPaths.map(async (path) => {
+    const stylesheet = await app.request(path);
+    assert.equal(stylesheet.status, 200);
+    return stylesheet.text();
+  }));
+  assert.ok(styles.some((css) => css.includes(".references-layout") && css.includes("--refs-sidebar-width")),
+    "The public docs must load Scalar's official page layout CSS");
 
   for (const path of protectedPaths) {
     const response = await app.request(path);

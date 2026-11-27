@@ -4,6 +4,11 @@
 
 系统 SHALL 提供经应用级鉴权的电影详情 API，并在 `/docs/api` 用 Scalar 展示相同的公开 OpenAPI 契约。VidAll 凭据只由其服务端持有，并且可撤销。
 
+#### Scenario: 查看 Scalar API 文档
+
+- **WHEN** 调用方打开公开 `/docs/api`
+- **THEN** 页面使用 Scalar 官方样式和完整视口按桌面或窄屏布局渲染公开契约，提供悬浮的「返回 CineRelay」首页入口，无需管理员会话，不开启网页测试请求
+
 #### Scenario: 查看文档与调用 API
 
 - **WHEN** 调用方打开公开文档，随后未携带有效凭据调用详情接口

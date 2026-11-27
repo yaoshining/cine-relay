@@ -10,6 +10,6 @@ const Scalar = dynamic(() => import("@scalar/api-reference-react").then((mod) =>
 export function PublicApiReference() {
   return <Scalar configuration={{
     url: "/api/v1/openapi.json", darkMode: true, hideDarkModeToggle: true, withDefaultFonts: false,
-    hideTestRequestButton: true, hideClientButton: true, telemetry: false,
+    hideTestRequestButton: true, hideClientButton: true, showDeveloperTools: "never", telemetry: false,
   }}/>;
 }

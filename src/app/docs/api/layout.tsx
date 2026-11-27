@@ -1,13 +1,13 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { BrandMark } from "@/components/brand";
+import { ArrowLeft } from "lucide-react";
+import "@scalar/api-reference-react/style.css";
 
 export default function PublicDocsLayout({ children }: { children: ReactNode }) {
-  return <main id="content" className="mx-auto max-w-5xl p-4 sm:p-6">
-    <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-      <Link href="/docs/api" className="wordmark"><BrandMark/>CineRelay</Link>
-      <Link href="/login" className="text-link">管理员登录</Link>
-    </header>
+  return <main id="content" className="min-h-dvh">
+    <Link href="/" prefetch={false} className="fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] z-20 inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-medium text-foreground shadow-lg hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+      <ArrowLeft className="size-4" aria-hidden="true" /> 返回 CineRelay
+    </Link>
     {children}
   </main>;
 }
