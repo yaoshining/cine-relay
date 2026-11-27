@@ -46,10 +46,9 @@
             "required": true,
             "schema": {
               "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 120
-            }
+              "type": "string"
+            },
+            "description": "先 NFC 规范化、去除首尾空白并合并连续空白，再校验长度为 1–120（UTF-16 代码单元）。"
           },
           {
             "name": "first_air_date_year",
@@ -454,7 +453,7 @@
             }
           },
           "404": {
-            "description": "not_found",
+            "description": "搜索标识不存在或已过 24 小时确认窗口。请用新 UUID 重新搜索，再确认新结果中展示的候选。",
             "content": {
               "application/json": {
                 "schema": {

@@ -35,11 +35,13 @@ test('真实 SQL：搜索、确认归属、并发、近期热度、共享额度�
   assert.equal((await pg.query("select resource from tv_cache where resource='expired'")).rows.length,0);
   assert.equal((await pg.query("select search_id from tv_search_operations")).rows.length,3);
   assert.equal(series,0);
+  // Four confirmations rank the missing series ahead of the valid one.
+  await pg.exec(`insert into tv_search_operations(consumer_id,search_id,conditions,selected,confirmed_at) select '${key.id}',gen_random_uuid(),'{"lang":"zh-CN"}','999',now() from generate_series(1,4)`);
   assert.deepEqual(await maintainTv(db,()=>client),{status:'refreshed'});assert.deepEqual(await maintainTv(db,()=>client),{status:'idle'});assert.equal(series,1);assert.equal(episodes,0);
   const ep={seriesId:'101',season:'0',episode:'1'};for(const c of ['refreshed','hit'])assert.equal((await (await ask('episode',id,'',undefined,key.token,ep)).json()).cache,c);assert.equal(episodes,1);
   rate=true;assert.equal((await ask('search',crypto.randomUUID(),'?query=空')).status,503);rate=false;empty=true;
   assert.equal((await (await ask('search',crypto.randomUUID(),'?query=空')).json()).totalResults,0);
   const {rows}=await pg.query<{ttl:number}>("select extract(epoch from expires_at-now())::int as ttl from tv_cache where payload->>'totalResults'='0'");assert.ok(rows[0].ttl>595&&rows[0].ttl<=600);
-  await pg.exec('update tmdb_request_gate set request_count=480');await assert.rejects(withTmdbPermit(db,async()=>1,true),/budget_unavailable/);assert.equal(await withTmdbPermit(db,async()=>1),1);
+  await pg.exec("update tmdb_request_gate set request_count=480,hour_start=date_trunc('hour',now(),'UTC')");await assert.rejects(withTmdbPermit(db,async()=>1,true),/budget_unavailable/);assert.equal(await withTmdbPermit(db,async()=>1),1);
   assert.equal((await pg.query('select tmdb_id from movies')).rows.length,0);
 });

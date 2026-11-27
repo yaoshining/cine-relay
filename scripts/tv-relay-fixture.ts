@@ -19,23 +19,24 @@ export function fixtureServer() {
         const parsed=searchParams.safeParse({query:normalizeTitle(q.get('query')??''),lang:q.get('lang')??undefined,first_air_date_year:q.has('first_air_date_year')?Number(q.get('first_air_date_year')):undefined,page:q.has('page')?Number(q.get('page')):undefined});
         if(!sid.success||!parsed.success)return error(400,'invalid_request');
         const {query,lang,first_air_date_year:year,page}=parsed.data;
-        const key=JSON.stringify([query,lang,year]);const session=sessions.get(sid.data)??{key,shown:new Set<string>()};
+        const key=JSON.stringify([query,lang,year]);const session=sessions.get(sid.data.toLowerCase())??{key,shown:new Set<string>()};
         if(session.key!==key)return error(409,'conflict');
         const matches=rows.filter(r=>(r.name.includes(query)||r.originalName.toLowerCase().includes(query.toLowerCase()))&&(!year||r.firstAirDate.startsWith(String(year))));
         // 每页一个候选，方便下游测试翻页、歧义与候选确认。
         const results=matches.slice(page-1,page); for(const row of results)session.shown.add(row.seriesId);
-        sessions.set(sid.data,session);
+        sessions.set(sid.data.toLowerCase(),session);
         return send(200,searchResult.parse({searchId:sid.data,locale:lang,cache:cache(key+':'+page),page,totalPages:matches.length,totalResults:matches.length,results}));
       }
       if(req.method==='POST'&&pathname==='/api/v1/search/tv/confirm') {
         let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>2048)return error(400,'invalid_request');}
-        const {searchId:id,seriesId}=confirmation.parse(JSON.parse(raw));const s=sessions.get(id);
+        const {searchId:id,seriesId}=confirmation.parse(JSON.parse(raw));const s=sessions.get(id.toLowerCase());
         if(!s)return error(404,'not_found');
         if(!s.shown.has(seriesId)||(s.selected&&s.selected!==seriesId))return error(409,'conflict');
         s.selected=seriesId;return send(200,{searchId:id,seriesId});
       }
-      const path=/^\/api\/v1\/tv\/([1-9]\d*)(?:\/season\/(0|[1-9]\d*)\/episode\/([1-9]\d*))?$/.exec(pathname);
+      const path=/^\/api\/v1\/tv\/([1-9]\d*)(?:\/season\/(0|[1-9]\d*)\/episode\/(0|[1-9]\d*))?$/.exec(pathname);
       if(req.method!=='GET'||!path)return error(404,'not_found');
+      if(path[3]==='0')return error(400,'invalid_request');
       const lang=locale.parse(q.get('lang')??'zh-CN');const row=rows.find(r=>r.seriesId===path[1]);if(!row)return error(404,'not_found');
       const seasons=[{seasonNumber:0,name:'特别篇',episodeCount:1},{seasonNumber:1,name:'第一季',episodeCount:6}];
       if(!path[2])return send(200,seriesDetail.parse({...row,seasons,locale:lang,cache:cache(pathname+lang)}));
