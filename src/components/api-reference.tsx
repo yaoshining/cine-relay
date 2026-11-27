@@ -7,7 +7,7 @@ const Scalar = dynamic(() => import("@scalar/api-reference-react").then((mod) =>
   loading: () => <p role="status" className="text-sm text-muted-foreground">正在载入交互式文档…</p>,
 });
 
-export function PublicApiReference() {
+export function ApiReference() {
   return <Scalar configuration={{
     url: "/api/v1/openapi.json", darkMode: true, hideDarkModeToggle: true, withDefaultFonts: false,
     hideTestRequestButton: true, hideClientButton: true, showDeveloperTools: "never", telemetry: false,

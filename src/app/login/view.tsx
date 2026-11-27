@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { ArrowRight, FileCheck, LockKeyhole, ShieldCheck } from "lucide-react";
+import { FileCheck, LockKeyhole, ShieldCheck } from "lucide-react";
 import { BrandMark, GitHubMark } from "@/components/brand";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ export function LoginView({ enabled, error, signIn }: {
   signIn: () => Promise<void>;
 }) {
   const message = !enabled
-    ? "GitHub 登录尚未配置。请联系部署管理员，或查看公开 API 文档。"
+    ? "GitHub 登录尚未配置。请联系部署管理员。"
     : error === "AccessDenied"
       ? "无法授权此 GitHub 账户。请确认使用的是受邀账户，或联系管理员。"
       : error ? "暂时无法完成登录。请重试，或联系管理员。" : null;
@@ -27,6 +26,5 @@ export function LoginView({ enabled, error, signIn }: {
       <li><ShieldCheck aria-hidden="true"/><span><b>白名单校验</b> · 默认拒绝未受邀账户</span></li>
       <li><FileCheck aria-hidden="true"/><span><b>准入审计</b> · 登录判定写入操作审计</span></li>
     </ul>
-    <div className="login-docs"><Link className="text-link" href="/docs/api">查看公开 API 文档<ArrowRight aria-hidden="true"/></Link><code>/docs/api</code></div>
   </section><p className="login-session"><LockKeyhole aria-hidden="true"/>Auth.js 服务端会话保护</p></div></main>;
 }

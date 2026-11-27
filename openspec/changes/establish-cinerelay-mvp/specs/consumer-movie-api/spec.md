@@ -2,17 +2,22 @@
 
 ### Requirement: 独立外部鉴权及文档
 
-系统 SHALL 提供经应用级鉴权的电影详情 API，并在 `/docs/api` 用 Scalar 展示相同的公开 OpenAPI 契约。VidAll 凭据只由其服务端持有，并且可撤销。
+系统 SHALL 提供经应用级鉴权的电影详情 API，并仅向持有当前受邀管理员会话的用户提供 `/docs/api` 与 `/api/v1/openapi.json`。VidAll 从仓库本地的 `openspec/contracts/consumer-movie-api.openapi.json` 使用同一份契约，调用详情接口仍使用其服务端持有、可撤销的独立凭据。
 
-#### Scenario: 查看 Scalar API 文档
+#### Scenario: 管理员查看 Scalar API 文档
 
-- **WHEN** 调用方打开公开 `/docs/api`
-- **THEN** 页面使用 Scalar 官方样式和完整视口按桌面或窄屏布局渲染公开契约，提供悬浮的「返回 CineRelay」首页入口，无需管理员会话，不开启网页测试请求
+- **WHEN** 持有效受邀会话的管理员打开 `/docs/api`
+- **THEN** 页面使用 Scalar 官方样式和完整视口布局，提供「返回 CineRelay」悬浮入口，使用同源管理员会话加载 OpenAPI，不展示管理接口或密钥，不开启网页测试请求；文档页与 JSON 均不可缓存
 
-#### Scenario: 查看文档与调用 API
+#### Scenario: 拒绝未授权文档访问
 
-- **WHEN** 调用方打开公开文档，随后未携带有效凭据调用详情接口
-- **THEN** 文档可见但不展示管理接口或真实密钥，详情接口拒绝调用
+- **WHEN** 请求缺少有效受邀会话（包括匿名、仅持外部 Bearer 或管理员已撤权）
+- **THEN** 文档页转至 `/login`，OpenAPI 请求返回 `401` 及不可缓存的错误，两者均不返回契约
+
+#### Scenario: 使用本地契约与独立 API 凭据
+
+- **WHEN** VidAll 从仓库读取本地 OpenAPI 文件并调用电影详情接口
+- **THEN** 本地文件与受保护的 JSON 端点契约相同；详情接口仍只接受有效应用 Bearer，管理员会话不能替代它
 
 #### Scenario: 签发和撤销应用密钥
 

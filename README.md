@@ -12,7 +12,7 @@ CineRelay 是为 [VidAll](https://github.com/yaoshining/vidall-tv) 设计的影�
 
 ## 本地预览管理后台
 
-需要 Node.js 22+ 与 Python 3。无需凭据即可启动并查看登录页和公开文档；进入后台需按 [OpenSpec：管理员认证与审计](openspec/changes/establish-cinerelay-mvp/design.md#13-管理员认证与审计) 配置 GitHub OAuth 与已迁移的审计数据库。本地同步及凭据配置见 [OpenSpec：技术设计](openspec/changes/establish-cinerelay-mvp/design.md)。
+需要 Node.js 22+ 与 Python 3。无需凭据即可启动并查看登录页；进入后台及在线 API 文档需按 [OpenSpec：管理员认证与审计](openspec/changes/establish-cinerelay-mvp/design.md#13-管理员认证与审计) 配置 GitHub OAuth 与已迁移的审计数据库。离线接口契约见 [OpenAPI JSON](openspec/contracts/consumer-movie-api.openapi.json)。本地同步及凭据配置见 [OpenSpec：技术设计](openspec/changes/establish-cinerelay-mvp/design.md)。
 
 ```bash
 npm ci
